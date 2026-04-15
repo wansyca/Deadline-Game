@@ -18,9 +18,13 @@ public class Main {
         SwingUtilities.invokeLater(() -> {
             frame = new JFrame("23:59 — SUBMIT OR DIE");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(800, 600);
+
+            // FULLSCREEN MODE
+            frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+            // frame.setUndecorated(true); // aktifkan kalau mau tanpa border
+
             frame.setLocationRelativeTo(null);
-            frame.setResizable(false);
+            frame.setResizable(true);
 
             cardLayout = new CardLayout();
             mainPanel = new JPanel(cardLayout);
@@ -41,6 +45,8 @@ public class Main {
     public static void switchPage(String pageName) {
         if (cardLayout != null && mainPanel != null) {
             cardLayout.show(mainPanel, pageName);
+
+            // Fokus ke GamePanel biar input keyboard jalan
             if (pageName.equals(GAME)) {
                 for (Component comp : mainPanel.getComponents()) {
                     if (comp instanceof GamePanel) {
@@ -53,22 +59,16 @@ public class Main {
 
     public static void goToLeaderboardWithLoading() {
         switchPage(LOADING);
-        
-        // Wait for 2 seconds to simulate loading, then show leaderboard
-        Timer timer = new Timer(2000, e -> {
-            switchPage(LEADERBOARD);
-        });
+
+        Timer timer = new Timer(2000, e -> switchPage(LEADERBOARD));
         timer.setRepeats(false);
         timer.start();
     }
 
     public static void goToGameWithLoading(String playerName, String avatarPath) {
         switchPage(LOADING);
-        
-        // Wait for 2 seconds to simulate loading, then show game
-        Timer timer = new Timer(2000, e -> {
-            switchPage(GAME);
-        });
+
+        Timer timer = new Timer(2000, e -> switchPage(GAME));
         timer.setRepeats(false);
         timer.start();
     }

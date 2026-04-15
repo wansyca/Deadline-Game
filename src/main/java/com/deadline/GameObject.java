@@ -1,4 +1,5 @@
 package com.deadline;
+
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 
@@ -14,6 +15,7 @@ public abstract class GameObject {
     }
 
     public abstract void update();
+
     public abstract void draw(Graphics2D g);
 
     public Rectangle getBounds() {
@@ -24,11 +26,27 @@ public abstract class GameObject {
         return this.getBounds().intersects(other.getBounds());
     }
 
-    public int getX() { return x; }
-    public void setX(int x) { this.x = x; }
-    public int getY() { return y; }
-    public void setY(int y) { this.y = y; }
-    public int getWidth() { return width; }
-    public int getHeight() { return height; }
-}
+    public int getX() {
+        return x;
+    }
 
+    public void setX(int x) {
+        this.x = x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public void setY(int y) {
+        this.y = y;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+}

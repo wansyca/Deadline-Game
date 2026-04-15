@@ -1,4 +1,5 @@
 package com.deadline;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -62,10 +63,10 @@ public class LoadingPage extends JPanel {
         // progress merah
         g2.setColor(new Color(220, 0, 0));
         g2.fillRoundRect(x, y, (int) (barWidth * (progress / 100.0)), 12, 10, 10);
-        
+
         // Glow effect
         g2.setColor(new Color(255, 0, 0, 50));
         g2.setStroke(new BasicStroke(4));
-        g2.drawRoundRect(x-2, y-2, barWidth+4, 16, 12, 12);
+        g2.drawRoundRect(x - 2, y - 2, barWidth + 4, 16, 12, 12);
     }
 }

@@ -1,4 +1,5 @@
 package com.deadline;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -114,7 +115,8 @@ public class InputPlayerPanel extends JPanel {
         ImageIcon icon;
         try {
             java.net.URL imgUrl = getClass().getResource(path);
-            if (imgUrl == null) throw new Exception("Resource not found: " + path);
+            if (imgUrl == null)
+                throw new Exception("Resource not found: " + path);
             icon = new ImageIcon(imgUrl);
         } catch (Exception e) {
             return new JButton("Error Loading");
@@ -181,7 +183,8 @@ public class InputPlayerPanel extends JPanel {
     }
 
     private void resetCard(JButton btn) {
-        if (btn == null) return;
+        if (btn == null)
+            return;
         btn.setBorder(null);
 
         if (btn.getComponentCount() > 0 && btn.getComponent(0) instanceof JPanel) {

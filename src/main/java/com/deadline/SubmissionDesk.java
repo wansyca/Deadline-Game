@@ -1,4 +1,5 @@
 package com.deadline;
+
 import java.awt.Color;
 import java.awt.Graphics2D;
 
@@ -25,4 +26,3 @@ public class SubmissionDesk extends GameObject {
         g2d.drawRect(x, y, width, height);
     }
 }
-
