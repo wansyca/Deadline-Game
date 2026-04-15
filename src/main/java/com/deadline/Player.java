@@ -34,6 +34,22 @@ public class Player extends GameObject {
         this.name = name;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public void setX(int x) {
+        super.setX(x);
+        this.exactX = x;
+    }
+
+    @Override
+    public void setY(int y) {
+        super.setY(y);
+        this.exactY = y;
+    }
+
     public void setDirection(int dx, int dy) {
         dX = dx;
         dY = dy;

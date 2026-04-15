@@ -1,62 +1,103 @@
 package com.deadline;
 
 import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GradientPaint;
+import java.awt.GridLayout;
+import java.awt.GridBagLayout;
+import java.awt.RenderingHints;
+import java.awt.BasicStroke;
+import java.util.List;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 public class SurvivorRankingUI extends JPanel {
+    private JPanel contentPanel;
 
     public SurvivorRankingUI() {
         setLayout(new BorderLayout());
-        setBackground(new Color(15, 15, 15));
+        setBackground(new Color(10, 10, 15));
 
         add(createHeader(), BorderLayout.NORTH);
 
-        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel = new JPanel(new BorderLayout());
         contentPanel.setOpaque(false);
-        contentPanel.add(createPodiumSection(), BorderLayout.NORTH);
+        
+        add(contentPanel, BorderLayout.CENTER);
 
-        JScrollPane scrollPane = new JScrollPane(createListSection());
-        scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+        addComponentListener(new ComponentAdapter() {
             @Override
-            protected void configureScrollBarColors() {
-                this.thumbColor = new Color(100, 0, 0);
-                this.trackColor = new Color(20, 20, 20);
+            public void componentShown(ComponentEvent e) {
+                refreshData();
             }
         });
-        contentPanel.add(scrollPane, BorderLayout.CENTER);
 
-        add(contentPanel, BorderLayout.CENTER);
+        // Initial data load
+        refreshData();
+    }
+
+    private void refreshData() {
+        if (contentPanel == null) return;
+        contentPanel.removeAll();
+        List<LeaderboardManager.PlayerScore> scores = LeaderboardManager.loadScores();
+
+        // Podiums
+        contentPanel.add(createPodiumSection(scores), BorderLayout.NORTH);
+
+        // List Section
+        contentPanel.add(createListSection(scores), BorderLayout.CENTER);
+
+        contentPanel.revalidate();
+        contentPanel.repaint();
     }
 
     // ===== HEADER =====
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(new Color(25, 0, 0));
-        header.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        JPanel header = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                GradientPaint gp = new GradientPaint(0, 0, new Color(20, 20, 40), getWidth(), 0, new Color(10, 10, 20));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.setColor(new Color(255, 255, 255, 30));
+                g2.drawLine(0, getHeight() - 1, getWidth(), getHeight() - 1);
+                g2.dispose();
+            }
+        };
+        header.setOpaque(false);
+        header.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
 
-        JButton backBtn = new JButton("← BACK") {
+        JButton backBtn = new JButton("← BACK TO MENU") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isRollover() ? new Color(200, 0, 0) : new Color(120, 0, 0));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                if (getModel().isPressed()) g2.setColor(new Color(50, 50, 70));
+                else if (getModel().isRollover()) g2.setColor(new Color(70, 70, 100));
+                else g2.setColor(new Color(40, 40, 60));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        backBtn.setForeground(Color.WHITE);
-        backBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        backBtn.setForeground(new Color(200, 220, 255));
+        backBtn.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 13));
         backBtn.setFocusPainted(false);
         backBtn.setContentAreaFilled(false);
         backBtn.setBorderPainted(false);
-        backBtn.setPreferredSize(new Dimension(100, 35));
+        backBtn.setPreferredSize(new Dimension(150, 40));
         backBtn.addActionListener(e -> Main.switchPage(Main.DASHBOARD));
 
-        JLabel title = new JLabel("TOP SURVIVORS", SwingConstants.CENTER);
-        title.setForeground(new Color(255, 50, 50));
-        title.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        JLabel title = new JLabel("HALL OF SURVIVORS", SwingConstants.CENTER);
+        title.setForeground(Color.WHITE);
+        title.setFont(new Font("Segoe UI Light", Font.BOLD, 32));
 
         header.add(backBtn, BorderLayout.WEST);
         header.add(title, BorderLayout.CENTER);
@@ -65,14 +106,19 @@ public class SurvivorRankingUI extends JPanel {
     }
 
     // ===== PODIUM =====
-    private JPanel createPodiumSection() {
-        JPanel panel = new JPanel(new GridLayout(1, 3, 20, 0));
-        panel.setBackground(new Color(20, 20, 20));
-        panel.setBorder(BorderFactory.createEmptyBorder(30, 50, 20, 50));
+    private JPanel createPodiumSection(List<LeaderboardManager.PlayerScore> scores) {
+        JPanel panel = new JPanel(new GridLayout(1, 3, 30, 0));
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(40, 80, 20, 80));
 
-        panel.add(createPodiumCard("2ND", "Donita", "1,320", 130, new Color(180, 180, 180)));
-        panel.add(createPodiumCard("1ST", "David", "2,450", 170, new Color(255, 215, 0)));
-        panel.add(createPodiumCard("3RD", "Steven", "953", 110, new Color(205, 127, 50)));
+        LeaderboardManager.PlayerScore p1 = scores.size() > 0 ? scores.get(0) : null;
+        LeaderboardManager.PlayerScore p2 = scores.size() > 1 ? scores.get(1) : null;
+        LeaderboardManager.PlayerScore p3 = scores.size() > 2 ? scores.get(2) : null;
+
+        // Order: 2nd, 1st, 3rd
+        panel.add(createPodiumCard("2ND", p2 != null ? p2.name : "---", p2 != null ? String.valueOf(p2.score) : "0", 140, new Color(192, 192, 192)));
+        panel.add(createPodiumCard("1ST", p1 != null ? p1.name : "---", p1 != null ? String.valueOf(p1.score) : "0", 190, new Color(255, 215, 0)));
+        panel.add(createPodiumCard("3RD", p3 != null ? p3.name : "---", p3 != null ? String.valueOf(p3.score) : "0", 110, new Color(205, 127, 50)));
 
         return panel;
     }
@@ -82,14 +128,14 @@ public class SurvivorRankingUI extends JPanel {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setOpaque(false);
 
-        JLabel nameLbl = new JLabel(name);
+        JLabel nameLbl = new JLabel(name.toUpperCase());
         nameLbl.setForeground(Color.WHITE);
-        nameLbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        nameLbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
         nameLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel scoreLbl = new JLabel(score + " PTS");
-        scoreLbl.setForeground(accent);
-        scoreLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        JLabel scoreLbl = new JLabel(score + " POINTS");
+        scoreLbl.setForeground(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 200));
+        scoreLbl.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         scoreLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JPanel box = new JPanel(new GridBagLayout()) {
@@ -97,46 +143,92 @@ public class SurvivorRankingUI extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, new Color(100, 0, 0), 0, getHeight(), new Color(40, 0, 0));
+                
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 100));
+                g2.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 5, 20, 20);
+
+                // Body
+                GradientPaint gp = new GradientPaint(0, 0, new Color(40, 40, 50), 0, getHeight(), new Color(20, 20, 30));
                 g2.setPaint(gp);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+                
+                // Rank Highlight
+                g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 40));
+                g2.fillRoundRect(0, 0, getWidth(), 40, 20, 20);
+                g2.fillRect(0, 20, getWidth(), 20);
+
+                // Glow Border
                 g2.setColor(accent);
-                g2.setStroke(new BasicStroke(2));
-                g2.drawRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 15, 15);
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.drawRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 20, 20);
+                
                 g2.dispose();
             }
         };
-        box.setPreferredSize(new Dimension(80, height));
-        box.setMaximumSize(new Dimension(80, height));
+        box.setPreferredSize(new Dimension(100, height));
+        box.setMaximumSize(new Dimension(120, height));
         box.setOpaque(false);
 
         JLabel rankLbl = new JLabel(rank);
         rankLbl.setForeground(Color.WHITE);
-        rankLbl.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        rankLbl.setFont(new Font("Impact", Font.PLAIN, 36));
         box.add(rankLbl);
 
         card.add(nameLbl);
-        card.add(Box.createRigidArea(new Dimension(0, 5)));
+        card.add(Box.createRigidArea(new Dimension(0, 8)));
         card.add(scoreLbl);
-        card.add(Box.createRigidArea(new Dimension(0, 10)));
+        card.add(Box.createRigidArea(new Dimension(0, 15)));
         card.add(box);
 
         return card;
     }
 
     // ===== LIST =====
-    private JPanel createListSection() {
+    private JComponent createListSection(List<LeaderboardManager.PlayerScore> scores) {
         JPanel list = new JPanel();
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
-        list.setBackground(new Color(15, 15, 15));
-        list.setBorder(BorderFactory.createEmptyBorder(10, 30, 30, 30));
+        list.setOpaque(false);
+        list.setBorder(BorderFactory.createEmptyBorder(20, 100, 40, 100));
 
-        list.add(createRow("4", "Hendry", "690"));
-        list.add(createRow("5", "Britney", "889"));
-        list.add(createRow("6", "Andreas", "800"));
-        list.add(createRow("7", "Renaldy", "780"));
+        if (scores.size() <= 3) {
+            JLabel empty = new JLabel("No other survivors recorded yet...");
+            empty.setForeground(new Color(100, 100, 120));
+            empty.setFont(new Font("Segoe UI", Font.ITALIC, 16));
+            empty.setAlignmentX(Component.CENTER_ALIGNMENT);
+            list.add(Box.createVerticalGlue());
+            list.add(empty);
+            list.add(Box.createVerticalGlue());
+        } else {
+            for (int i = 3; i < scores.size(); i++) {
+                LeaderboardManager.PlayerScore ps = scores.get(i);
+                list.add(createRow(String.valueOf(i + 1), ps.name, String.valueOf(ps.score)));
+                list.add(Box.createRigidArea(new Dimension(0, 10)));
+            }
+        }
 
-        return list;
+        JScrollPane scroll = new JScrollPane(list);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.setBorder(null);
+        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(8, 0));
+        scroll.getVerticalScrollBar().setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                this.thumbColor = new Color(60, 60, 80);
+                this.trackColor = new Color(20, 20, 30);
+            }
+            @Override
+            protected JButton createDecreaseButton(int orientation) { return createZeroButton(); }
+            @Override
+            protected JButton createIncreaseButton(int orientation) { return createZeroButton(); }
+            private JButton createZeroButton() {
+                JButton b = new JButton();
+                b.setPreferredSize(new Dimension(0,0));
+                return b;
+            }
+        });
+        return scroll;
     }
 
     private JPanel createRow(String rank, String name, String score) {
@@ -145,23 +237,25 @@ public class SurvivorRankingUI extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(30, 30, 30));
-                g2.fillRoundRect(0, 2, getWidth(), getHeight() - 4, 10, 10);
+                g2.setColor(new Color(255, 255, 255, 10));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.setColor(new Color(255, 255, 255, 20));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
                 g2.dispose();
             }
         };
         row.setOpaque(false);
-        row.setPreferredSize(new Dimension(0, 50));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
-        row.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
+        row.setPreferredSize(new Dimension(0, 55));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
+        row.setBorder(BorderFactory.createEmptyBorder(0, 25, 0, 25));
 
-        JLabel left = new JLabel("#" + rank + "  " + name);
-        left.setForeground(Color.WHITE);
-        left.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        JLabel left = new JLabel("#" + rank + "    " + name.toUpperCase());
+        left.setForeground(new Color(220, 220, 240));
+        left.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 16));
 
         JLabel right = new JLabel(score + " PTS");
-        right.setForeground(new Color(255, 100, 100));
-        right.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        right.setForeground(new Color(150, 180, 255));
+        right.setFont(new Font("Segoe UI", Font.BOLD, 16));
 
         row.add(left, BorderLayout.WEST);
         row.add(right, BorderLayout.EAST);

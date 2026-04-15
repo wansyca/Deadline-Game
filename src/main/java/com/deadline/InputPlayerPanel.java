@@ -71,6 +71,15 @@ public class InputPlayerPanel extends JPanel {
             if (name.isEmpty())
                 name = "Mahasiswa";
 
+            // 🔥 VALIDASI NAMA PLAYER
+            java.util.List<LeaderboardManager.PlayerScore> scores = LeaderboardManager.loadScores();
+            for (LeaderboardManager.PlayerScore ps : scores) {
+                if (ps.name.equalsIgnoreCase(name)) {
+                    JOptionPane.showMessageDialog(null, "Username sudah digunakan!", "Peringatan", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+            }
+
             Main.goToGameWithLoading(name, selectedAvatar);
         });
         add(playBtn);

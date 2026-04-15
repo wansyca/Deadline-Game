@@ -32,6 +32,14 @@ public class Lecturer extends GameObject {
         sprite = new ImageIcon(getClass().getResource("/assets/Avatar_3_dosen.png")).getImage();
     }
 
+    public void setSpeed(double speed) {
+        this.speed = speed;
+    }
+
+    public double getSpeed() {
+        return this.speed;
+    }
+
     public void updateAI(Player target) {
         double dx = target.getX() - exactX;
         double dy = target.getY() - exactY;
