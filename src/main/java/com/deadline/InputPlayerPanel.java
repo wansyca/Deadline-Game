@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.CropImageFilter;
 import java.awt.image.FilteredImageSource;
+import com.deadline.backend.PlayerService;
 
 @SuppressWarnings("unused")
 public class InputPlayerPanel extends JPanel {
@@ -71,16 +72,16 @@ public class InputPlayerPanel extends JPanel {
             if (name.isEmpty())
                 name = "Mahasiswa";
 
-            // 🔥 VALIDASI NAMA PLAYER
-            java.util.List<LeaderboardManager.PlayerScore> scores = LeaderboardManager.loadScores();
-            for (LeaderboardManager.PlayerScore ps : scores) {
-                if (ps.name.equalsIgnoreCase(name)) {
-                    JOptionPane.showMessageDialog(null, "Username sudah digunakan!", "Peringatan", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
+            // Save player to database
+            PlayerService playerService = new PlayerService();
+            int playerId = playerService.createPlayer(name, selectedAvatar);
+            
+            if (playerId == -1) {
+                JOptionPane.showMessageDialog(null, "Gagal membuat/mengambil data player!", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
             }
 
-            Main.goToGameWithLoading(name, selectedAvatar);
+            Main.goToGameWithLoading(playerId, name, selectedAvatar);
         });
         add(playBtn);
 

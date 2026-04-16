@@ -1,7 +1,8 @@
-package com.deadline;
+    package com.deadline;
 
 import javax.swing.*;
 import java.awt.*;
+import com.deadline.backend.DatabaseManager;
 
 public class Main {
     public static final String DASHBOARD = "DASHBOARD";
@@ -17,6 +18,9 @@ public class Main {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            // Initialize database on startup
+            DatabaseManager.initializeDatabase();
+
             frame = new JFrame("23:59 — SUBMIT OR DIE");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -68,9 +72,9 @@ public class Main {
         timer.start();
     }
 
-    public static void goToGameWithLoading(String playerName, String avatarPath) {
+    public static void goToGameWithLoading(int playerId, String playerName, String avatarPath) {
         if (gamePanel != null) {
-            gamePanel.resetGame(playerName, avatarPath);
+            gamePanel.resetGame(playerId, playerName, avatarPath);
         }
         
         switchPage(LOADING);

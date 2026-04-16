@@ -3,11 +3,21 @@ package com.deadline;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Font;
+import com.deadline.backend.SubmissionService;
 
 public class SubmissionDesk extends GameObject {
 
+    private SubmissionService submissionService;
+
     public SubmissionDesk(int x, int y) {
         super(x, y, 300, 100);
+        this.submissionService = new SubmissionService();
+    }
+
+    public void processSubmission(int playerId, String title, String status) {
+        if (playerId != -1) {
+            submissionService.submitTask(playerId, title, status);
+        }
     }
 
     @Override

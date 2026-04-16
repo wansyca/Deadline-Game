@@ -3,8 +3,8 @@ nm,548,215
 wa,248,100
 fao,227,124
 any,166,83
+kamu,157,84
 tati,131,54
+Mahasiswa,130,370
 tati,115,43
 syca,115,65
-uput,112,108
-Asep,80,50

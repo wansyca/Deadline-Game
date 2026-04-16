@@ -64,6 +64,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private int collectedBooks = 0;
     private int totalScore = 0;
     private long gameStartTime;
+    
+    // BACKEND INTEGRATION
+    private int currentPlayerId = -1;
 
     // Movement
     private boolean up, down, left, right;
@@ -101,7 +104,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         System.out.println("GAME PANEL 8000x6000 SURVIVAL VERSION KELOAD ✅");
     }
 
-    public void resetGame(String playerName, String avatarPath) {
+    public void resetGame(int playerId, String playerName, String avatarPath) {
+        this.currentPlayerId = playerId;
         // Reset state
         up = false; down = false; left = false; right = false;
 
@@ -367,6 +371,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 collectedBooks++;
                 totalScore = survivalTime + (collectedBooks * 10);
                 assignments.remove(i);
+                
+                // BACKEND: Record submission via SubmissionDesk if needed, 
+                // but since GamePanel gives score instantly, we just record task submission.
+                if (currentPlayerId != -1 && !submissionDesks.isEmpty()) {
+                    submissionDesks.get(0).processSubmission(currentPlayerId, "Collected Assignment " + collectedBooks, "SUCCESS");
+                }
                 
                 // Update semua kecepatan dosen saat ini
                 double newSpeed = Math.min(1.5 + (collectedBooks * 0.3), 6.0);
@@ -648,7 +658,16 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     private void saveFinalScore() {
         int timePlayed = (int) ((System.currentTimeMillis() - gameStartTime) / 1000);
+        
+        // BACKEND: Save to database
+        if (currentPlayerId != -1) {
+            com.deadline.backend.ScoreService scoreService = new com.deadline.backend.ScoreService();
+            scoreService.saveScore(currentPlayerId, totalScore, timePlayed);
+        }
+        
+        // Use older LeaderboardManager for fallback/txt compatibility if we don't rewrite it.
         LeaderboardManager.saveScore(player.getName(), totalScore, timePlayed);
+        
         // Reset time start for restart
         gameStartTime = System.currentTimeMillis();
     }
