@@ -68,21 +68,32 @@ public class InputPlayerPanel extends JPanel {
         // BUTTON LANJUTKAN
         playBtn = createMainButton("LANJUTKAN");
         playBtn.addActionListener(e -> {
-            String name = nameField.getText().trim();
-            if (name.isEmpty())
-                name = "Mahasiswa";
+    String name = nameField.getText().trim();
 
-            // Save player to database
-            PlayerService playerService = new PlayerService();
-            int playerId = playerService.createPlayer(name, selectedAvatar);
-            
-            if (playerId == -1) {
-                JOptionPane.showMessageDialog(null, "Gagal membuat/mengambil data player!", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+    PlayerService playerService = new PlayerService();
 
-            Main.goToGameWithLoading(playerId, name, selectedAvatar);
-        });
+      // ❌ nama kosong
+    if (name.isEmpty()) {
+        JOptionPane.showMessageDialog(null, "Nama tidak boleh kosong!");
+        return;
+    }
+
+    // ❌ nama sudah ada
+    if (playerService.isUsernameExists(name)) {
+        JOptionPane.showMessageDialog(null, "Nama sudah dipakai! ❌");
+        return;
+    }
+
+    // ✅ lanjut kalau aman
+    int playerId = playerService.createPlayer(name, selectedAvatar);
+
+    if (playerId == -1) {
+        JOptionPane.showMessageDialog(null, "Gagal membuat player!", "Error", JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+
+    Main.goToGameWithLoading(playerId, name, selectedAvatar);
+});
         add(playBtn);
 
         // BUTTON BACK
