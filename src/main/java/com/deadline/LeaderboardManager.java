@@ -44,11 +44,4 @@ public class LeaderboardManager {
         // so we remove dummy data logic.
         return scores;
     }
-
-    private static boolean containsName(List<PlayerScore> scores, String name) {
-        for (PlayerScore ps : scores) {
-            if (ps.name.equalsIgnoreCase(name)) return true;
-        }
-        return false;
-    }
 }

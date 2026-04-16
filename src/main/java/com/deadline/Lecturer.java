@@ -1,35 +1,26 @@
 package com.deadline;
 
 import java.awt.*;
-import javax.swing.ImageIcon;
 
 public class Lecturer extends GameObject {
 
     private double speed;
     private double exactX, exactY;
-    private Image sprite;
-    private double distanceToTarget = 9999;
-
+    private Image image;
     private int animTick = 0;
+    private boolean facingRight = true;
 
-    private enum State {
-        WANDER, CHASE
+    public Lecturer(int x, int y, double speed, Image image) {
+        // 🔥 UKURAN SAMA DENGAN PLAYER (160x160)
+        super(x, y, 160, 160);
+        this.speed = speed;
+        this.exactX = x;
+        this.exactY = y;
+        this.image = image;
     }
 
-    private State state = State.WANDER;
-
-    // 🔥 VISION DIPERBESAR SUPAYA SELALU NGEJAR
-    private double visionRange = 2500;
-
-    public Lecturer(int x, int y, double speed) {
-        // 🔥 DOSEN DIGEDEIN (180x200)
-        super(x, y, 180, 200);
-
-        this.speed = speed;
-        exactX = x;
-        exactY = y;
-
-        sprite = new ImageIcon(getClass().getResource("/assets/Avatar_3_dosen.png")).getImage();
+    public Image getImage() {
+        return image;
     }
 
     public void setSpeed(double speed) {
@@ -40,84 +31,82 @@ public class Lecturer extends GameObject {
         return this.speed;
     }
 
-    public void updateAI(Player target) {
-        double dx = target.getX() - exactX;
-        double dy = target.getY() - exactY;
+    public void updateAI(Player player, java.util.List<Lecturer> lecturers) {
+        // 6. GERAK DOSEN KE PLAYER
+        double dx = player.getX() - exactX;
+        double dy = player.getY() - exactY;
+        double dist = Math.sqrt(dx * dx + dy * dy);
 
-        double distance = Math.sqrt(dx * dx + dy * dy);
-        this.distanceToTarget = distance;
+        if (dist > 0) {
+            dx /= dist;
+            dy /= dist;
 
-        // 🔥 FIX BUG (biar ga NaN)
-        if (distance == 0) distance = 0.0001;
-
-        // Selalu chase jika dalam jangkauan map (karena vision range 2500, pasti selalu ngejar)
-        if (distance < visionRange)
-            state = State.CHASE;
-        else
-            state = State.WANDER;
-
-        if (state == State.CHASE) {
-            double dirX = dx / distance;
-            double dirY = dy / distance;
-
-            // 🔥 BOOST KECIL BIAR BISA KABUR
-            double boost = 1 + (0.3 * (1 - (distance / visionRange)));
-
-            exactX += dirX * speed * boost;
-            exactY += dirY * speed * boost;
-
+            exactX += dx * speed;
+            exactY += dy * speed;
+            
+            // Animasi jalan dan hadap kiri/kanan
+            animTick++;
+            if (dx > 0) facingRight = true;
+            else if (dx < 0) facingRight = false;
         } else {
-            // 🔥 GERAK NGELIAR LEBIH HALUS
-            exactX += Math.sin(animTick * 0.03) * 1.5;
-            exactY += Math.cos(animTick * 0.03) * 1.5;
+            animTick = 0;
         }
 
-        animTick++;
+        // 7. TAMBAH RANDOM GERAK (BIAR GA KAKU)
+        exactX += (Math.random() - 0.5) * 0.5;
+        exactY += (Math.random() - 0.5) * 0.5;
 
-        x = (int) exactX;
-        y = (int) exactY;
+        // 5. ANTI NUMPUK (WAJIB) - Jarak diperbesar karena ukuran dosen lebih besar
+        for (Lecturer other : lecturers) {
+            if (other != this) {
+                double diffX = this.exactX - other.exactX;
+                double diffY = this.exactY - other.exactY;
+                double distance = Math.sqrt(diffX * diffX + diffY * diffY);
+
+                if (distance < 100) {
+                    exactX += diffX * 0.05;
+                    exactY += diffY * 0.05;
+                }
+            }
+        }
+
+        this.x = (int) exactX;
+        this.y = (int) exactY;
     }
 
-    // 🔥 HITBOX LEBIH KECIL (BIAR FAIR & MUDAH LEWAT MEJA)
+    @Override
+    public void update() {
+        // Dikontrol dari GamePanel lewat updateAI
+    }
+
+    @Override
+    public void draw(Graphics2D g) {
+        // Efek ngambang/bobbing
+        int offsetY = (int) (Math.sin(animTick * 0.4) * 6);
+
+        // 9. RENDER BAYANGAN (Sama seperti player)
+        g.setColor(new Color(0, 0, 0, 60));
+        g.fillOval(x + width / 4, y + height - 15, width / 2, 18);
+
+        // 8. RENDER DOSEN
+        if (image != null) {
+            if (facingRight) {
+                g.drawImage(image, x, y + offsetY, width, height, null);
+            } else {
+                g.drawImage(image, x + width, y + offsetY, -width, height, null);
+            }
+        } else {
+            g.setColor(Color.RED);
+            g.fillRect(x, y + offsetY, width, height);
+        }
+    }
+
     public Rectangle getBounds() {
-        // Padding lebih besar agar hitbox tetap ramping di tengah (70-80px)
-        return new Rectangle(x + 55, y + 60, width - 110, height - 120);
+        // Hitbox pas di badan (Disamakan dengan offset player agar konsisten)
+        return new Rectangle(x + 45, y + 45, width - 90, height - 90);
     }
 
     public boolean intersects(Player p) {
         return getBounds().intersects(p.getBounds());
     }
-
-    @Override
-    public void update() {
-        // dikontrol dari GamePanel
-    }
-
-    @Override
-    public void draw(Graphics2D g) {
-
-        int offsetY = (int) (Math.sin(animTick * 0.3) * 5);
-
-        // 🔥 SHADOW IKUT SIZE
-        g.setColor(new Color(0, 0, 0, 70));
-        g.fillOval(x + width / 4, y + height - 18, width / 2, 20);
-
-        int shakeX = 0;
-        int shakeY = 0;
-
-        // 🔥 MODE NGEJAR + DEKAT = EFEK SEREM
-        if (state == State.CHASE && distanceToTarget < 300) {
-            shakeX = (int) (Math.random() * 8 - 4);
-            shakeY = (int) (Math.random() * 8 - 4);
-
-            g.setColor(new Color(255, 0, 0, 40));
-            g.fillOval(x - 30, y - 30, width + 60, height + 60);
-        }
-
-        g.drawImage(sprite, x + shakeX, y + offsetY + shakeY, width, height, null);
-
-        // 🔥 DEBUG HITBOX (optional)
-        // g.setColor(Color.GREEN);
-        // g.draw(getBounds());
-    }
-}
+}

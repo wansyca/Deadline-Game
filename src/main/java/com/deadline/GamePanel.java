@@ -62,6 +62,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private boolean isGameOver = false;
 
     private Image deskImage;
+    private Image dosenTua;
+    private Image dosenMuda;
+    private Image dosenCewe;
+
 
     // 🔥 SURVIVAL MODE
     private int survivalTime = 0;
@@ -104,8 +108,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         // Load Asset
         try {
             deskImage = new ImageIcon(getClass().getResource("/assets/meja.png")).getImage();
+            
+            // 1. LOAD SEMUA IMAGE (DI CONSTRUCTOR, SEKALI SAJA)
+            dosenTua = new ImageIcon(getClass().getResource("/assets/avatar_3_dosen.png")).getImage();
+            dosenMuda = new ImageIcon(getClass().getResource("/assets/d.png")).getImage();
+            dosenCewe = new ImageIcon(getClass().getResource("/assets/dc.png")).getImage();
+            
         } catch (Exception e) {
-            System.err.println("Gagal load meja.png ❌");
+            System.err.println("Gagal load assets (meja/dosen) ❌");
         }
 
         timer = new Timer(1000 / FPS, this);
@@ -140,7 +150,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         if (player == null) {
             player = new Player(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
-            player.setAvatar("/assets/Avatar_1_cowo.png");
+            player.setAvatar("/assets/avatar_1_cowo.png");
         }
 
         lecturers = new ArrayList<>();
@@ -170,8 +180,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
         player.resetCarriedAssignments();
 
-        // Spawn lecturers (Awal game di map luas: 4 dosen)
-        for (int i = 0; i < 4; i++) {
+        // Spawn lecturers (Awal game di map luas: 6 dosen)
+        for (int i = 0; i < 6; i++) {
             spawnLecturer();
         }
 
@@ -182,14 +192,31 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     }
 
     private void spawnLecturer() {
-        // Kecepatan meningkat seiring buku
-        double speed = 1.5 + (collectedBooks * 0.3);
-        speed = Math.min(speed, 6.0); // Batas maksimum speed 6.0
+        // 4. DOSEN MAKIN CEPAT (BASE)
+        double baseSpeed = 1.5 + (collectedBooks * 0.2);
+        baseSpeed = Math.min(baseSpeed, 5.0);
+
+        // 2. RANDOM TIPE DOSEN SAAT SPAWN
+        Image selectedImage;
+        int rand = random.nextInt(3);
+        double finalSpeed = baseSpeed;
+
+        if (rand == 0) {
+            selectedImage = dosenTua;
+            finalSpeed -= 0.5; // Tua: Gerak Lambat
+        } else if (rand == 1) {
+            selectedImage = dosenMuda;
+            finalSpeed += 0.5; // Muda: Gerak Cepat
+        } else {
+            selectedImage = dosenCewe;
+            // Cewek: Gerak Sedang (Base)
+        }
 
         lecturers.add(new Lecturer(
                 random.nextInt(WORLD_WIDTH),
                 random.nextInt(WORLD_HEIGHT),
-                speed));
+                finalSpeed,
+                selectedImage));
     }
 
     private void initObstacles() {
@@ -318,9 +345,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             totalScore = survivalTime + (collectedBooks * 10);
         }
 
-        // 👨‍🏫 2. SPAWN DOSEN BERTAHAP (MAKIN SULIT)
-        int spawnDelay = Math.max(30, FPS * (3 - collectedBooks / 5));
-        int maxLecturers = 2 + (collectedBooks / 2);
+        // 👨‍🏫 2. SPAWN DOSEN BERTAHAP (LEBIH CEPAT)
+        int spawnDelay = Math.max(20, FPS * (2 - collectedBooks / 10));
+        
+        // 3. PERBANYAK DOSEN (MAKIN AGRESIF)
+        int maxLecturers = 6 + (collectedBooks);
 
         if (ticks % spawnDelay == 0 && lecturers.size() < maxLecturers) {
             spawnLecturer();
@@ -369,13 +398,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
 
         // Dosen AI
-       // Dosen AI
         for (Lecturer l : lecturers) {
-            l.updateAI(player);
+            l.updateAI(player, lecturers);
 
             if (l.intersects(player)) {
                 System.out.println("KETANGKAP DOSEN 💀");
-               isGameOver = true;
+                isGameOver = true;
 
                 saveFinalScore();        // simpan ke MySQL
                 loadLeaderboardFromDB(); // ambil leaderboard dari DB
@@ -396,10 +424,16 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                     submissionDesks.get(0).processSubmission(currentPlayerId, "Collected Assignment " + collectedBooks, "SUCCESS");
                 }
                 
-                // Update semua kecepatan dosen saat ini
-                double newSpeed = Math.min(1.5 + (collectedBooks * 0.3), 6.0);
+                // Update semua kecepatan dosen saat ini sesuai tipenya
                 for (Lecturer l : lecturers) {
-                    l.setSpeed(newSpeed);
+                    double baseSpeed = 1.5 + (collectedBooks * 0.2);
+                    baseSpeed = Math.min(baseSpeed, 5.0);
+                    
+                    double finalSpeed = baseSpeed;
+                    if (l.getImage() == dosenTua) finalSpeed -= 0.5;
+                    else if (l.getImage() == dosenMuda) finalSpeed += 0.5;
+                    
+                    l.setSpeed(finalSpeed);
                 }
 
                 // Spawn buku baru supaya di map tetap ada buku untuk diambil

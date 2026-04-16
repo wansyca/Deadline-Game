@@ -11,7 +11,7 @@ import com.deadline.backend.PlayerService;
 public class InputPlayerPanel extends JPanel {
 
     private JTextField nameField;
-    private String selectedAvatar = "assets/Avatar_1_cowo.png";
+    private String selectedAvatar = "/assets/avatar_1_cowo.png";
 
     private JButton maleBtn;
     private JButton femaleBtn;
@@ -57,23 +57,35 @@ public class InputPlayerPanel extends JPanel {
         add(avatarLabel);
 
         // AVATAR
-        maleBtn = createAvatarCard("/assets/Avatar_1_cowo.png");
+        maleBtn = createAvatarCard("/assets/avatar_1_cowo.png");
         add(maleBtn);
 
-        femaleBtn = createAvatarCard("/assets/Avatar_2_cewe.png");
+        femaleBtn = createAvatarCard("/assets/avatar_2_cewe.png");
         add(femaleBtn);
 
-        selectCard(maleBtn, "/assets/Avatar_1_cowo.png");
+        selectCard(maleBtn, "/assets/avatar_1_cowo.png");
 
         // BUTTON LANJUTKAN
         playBtn = createMainButton("LANJUTKAN");
         playBtn.addActionListener(e -> {
             String name = nameField.getText().trim();
-            if (name.isEmpty())
-                name = "Mahasiswa";
+            if (name.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "Nama tidak boleh kosong!", "Peringatan", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
 
             // Save player to database
             PlayerService playerService = new PlayerService();
+            
+            // 🔥 VALIDASI USERNAME DUPLIKAT
+            if (playerService.isUsernameExists(name)) {
+                JOptionPane.showMessageDialog(null, 
+                    "Username '" + name + "' sudah digunakan.\nSilakan pilih nama lain!", 
+                    "Username Terpakai", 
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             int playerId = playerService.createPlayer(name, selectedAvatar);
             
             if (playerId == -1) {

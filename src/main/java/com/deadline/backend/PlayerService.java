@@ -30,6 +30,22 @@ public class PlayerService {
         }
         return -1;
     }
+
+    public boolean isUsernameExists(String username) {
+        String query = "SELECT COUNT(*) FROM players WHERE username = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, username);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
     
     public Map<String, Object> getPlayerById(int id) {
         String query = "SELECT * FROM players WHERE id = ?";
