@@ -18,6 +18,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.Image;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
@@ -58,12 +59,16 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private Random random = new Random();
     private boolean isGameOver = false;
 
+    private Image deskImage;
+
     // 🔥 SURVIVAL MODE
     private int survivalTime = 0;
     private int ticks = 0;
     private int collectedBooks = 0;
     private int totalScore = 0;
     private long gameStartTime;
+    private List<LeaderboardManager.PlayerScore> cachedTopScores;
+    private boolean scoreSaved = false;
 
     // Movement
     private boolean up, down, left, right;
@@ -83,10 +88,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 Point p = e.getPoint();
                 if (isGameOver) {
                     if (btnRetry != null && btnRetry.contains(p)) {
-                        saveFinalScore();
                         initGame();
                     } else if (btnMenu != null && btnMenu.contains(p)) {
-                        saveFinalScore();
                         Main.switchPage(Main.DASHBOARD);
                     }
                 }
@@ -94,6 +97,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         });
 
         initGame();
+
+        // Load Asset
+        try {
+            deskImage = new ImageIcon(getClass().getResource("/assets/meja.png")).getImage();
+        } catch (Exception e) {
+            System.err.println("Gagal load meja.png ❌");
+        }
 
         timer = new Timer(1000 / FPS, this);
         timer.start();
@@ -122,6 +132,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         ticks = 0;
         collectedBooks = 0;
         totalScore = 0;
+        scoreSaved = false;
+        cachedTopScores = null;
         gameStartTime = System.currentTimeMillis();
 
         if (player == null) {
@@ -240,7 +252,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     }
 
     private void generateRoomDecor(int x, int y, int w, int h) {
-        int mejaWidth = 120;
+        int mejaWidth = 100;
         int mejaHeight = 80;
         int spacingX = 350;
         int spacingY = 250;
@@ -357,6 +369,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             if (l.intersects(player)) {
                 System.out.println("KETANGKAP DOSEN 💀");
                 isGameOver = true;
+                
+                // 🔥 SAVE SCORE IMMEDIATELY ONCE
+                if (!scoreSaved) {
+                    saveFinalScore();
+                    cachedTopScores = LeaderboardManager.loadScores();
+                    scoreSaved = true;
+                }
             }
         }
 
@@ -414,28 +433,30 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         // Obstacles (Meja & Tembok)
         for (Rectangle rect : obstacles) {
-            if (rect.width == WORLD_WIDTH || rect.height == WORLD_HEIGHT) {
-                // Tembok Luar
-                g2.setColor(new Color(44, 62, 80)); 
+            boolean isWall = rect.width > 250 || rect.height > 250;
+            
+            if (isWall) {
+                // 🧱 TEMBOK / SEKAT (Solid & Tegas)
+                g2.setColor(new Color(40, 40, 45)); 
                 g2.fill(rect);
-                g2.setColor(new Color(52, 73, 94));
+                g2.setColor(new Color(60, 60, 70));
+                g2.setStroke(new BasicStroke(2));
                 g2.draw(rect);
             } else if (rect.width == 300) {
-                // Meja Dosen sudah digambar oleh submissionDesks.draw()
+                // Meja Dosen (Submission Desk) di-skip karena digambar terpisah
             } else {
-                // MEJA MAHASISWA (GAMBAR PROSEDURAL - BERSIH & NO JARING)
-                // 1. Kaki Meja
-                g2.setColor(new Color(80, 50, 40));
-                g2.fillRect(rect.x + 5, rect.y + 5, 8, rect.height - 10);
-                g2.fillRect(rect.x + rect.width - 13, rect.y + 5, 8, rect.height - 10);
+                // 🪑 MEJA MAHASISWA (Pake Asset desk.png)
+                // Shadow tipis
+                g2.setColor(new Color(0, 0, 0, 30));
+                g2.fillRoundRect(rect.x + 5, rect.y + 10, rect.width, rect.height, 10, 10);
                 
-                // 2. Permukaan Meja
-                g2.setColor(new Color(121, 85, 72));
-                g2.fillRoundRect(rect.x, rect.y, rect.width, rect.height - 10, 8, 8);
-                
-                // 3. Highlight/Shading
-                g2.setColor(new Color(255, 255, 255, 30));
-                g2.drawRoundRect(rect.x, rect.y, rect.width, rect.height - 10, 8, 8);
+                if (deskImage != null) {
+                    g2.drawImage(deskImage, rect.x, rect.y, rect.width, rect.height, null);
+                } else {
+                    // Fallback jika gambar gagal load
+                    g2.setColor(new Color(121, 85, 72));
+                    g2.fillRoundRect(rect.x, rect.y, rect.width, rect.height - 10, 8, 8);
+                }
             }
         }
 
@@ -458,7 +479,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private void updateButtonBounds() {
         int panelW = getWidth();
         int panelH = getHeight();
-        int btnY = panelH / 2 + 60;
+        // Turunkan tombol agar di bawah leaderboard
+        int btnY = panelH / 2 + 160; 
         btnRetry = new Rectangle(panelW / 2 - 210, btnY, 200, 50);
         btnMenu = new Rectangle(panelW / 2 + 10, btnY, 200, 50);
     }
@@ -581,23 +603,67 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             String overText = "GAME OVER";
             int textWidth = g2.getFontMetrics().stringWidth(overText);
             g2.setColor(new Color(0, 0, 0, 150));
-            g2.drawString(overText, (panelW - textWidth) / 2 + 5, panelH / 2 - 15);
+            g2.drawString(overText, (panelW - textWidth) / 2 + 5, panelH / 2 - 125);
             
             g2.setColor(new Color(255, 50, 50));
-            g2.drawString(overText, (panelW - textWidth) / 2, panelH / 2 - 20);
+            g2.drawString(overText, (panelW - textWidth) / 2, panelH / 2 - 130);
             
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Segoe UI Light", Font.PLAIN, 28));
             String subText = "Kamu tertangkap dosen pelit nilai!";
             int subWidth = g2.getFontMetrics().stringWidth(subText);
-            g2.drawString(subText, (panelW - subWidth) / 2, panelH / 2 + 30);
+            g2.drawString(subText, (panelW - subWidth) / 2, panelH / 2 - 80);
             
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 22));
-            String scorFinal = "Poin Akhir: " + totalScore;
-            int sfWidth = g2.getFontMetrics().stringWidth(scorFinal);
-            g2.drawString(scorFinal, (panelW - sfWidth) / 2, panelH / 2 + 70);
+            // --- 🏆 EMBEDDED LEADERBOARD ---
+            if (cachedTopScores != null) {
+                int lbW = 400;
+                int lbH = 220;
+                int lbX = (panelW - lbW) / 2;
+                int lbY = panelH / 2 - 40;
+
+                // Glass Panel
+                g2.setColor(new Color(255, 255, 255, 15));
+                g2.fillRoundRect(lbX, lbY, lbW, lbH, 15, 15);
+                g2.setColor(new Color(255, 255, 255, 40));
+                g2.drawRoundRect(lbX, lbY, lbW, lbH, 15, 15);
+
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
+                g2.setColor(new Color(150, 150, 180));
+                g2.drawString("TOP SURVIVORS", lbX + 20, lbY + 30);
+
+                int entryY = lbY + 65;
+                for (int i = 0; i < Math.min(cachedTopScores.size(), 5); i++) {
+                    LeaderboardManager.PlayerScore ps = cachedTopScores.get(i);
+                    boolean isCurrent = ps.name.equalsIgnoreCase(player.getName()) && ps.score == totalScore;
+
+                    // Rank 1 Glow Effect
+                    if (i == 0) {
+                        g2.setColor(new Color(255, 215, 0, 40));
+                        g2.fillRoundRect(lbX + 10, entryY - 22, lbW - 20, 30, 8, 8);
+                    }
+
+                    // Highlight Current Player
+                    if (isCurrent) {
+                        g2.setColor(new Color(0, 255, 150)); // Emerald/Green
+                        g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
+                    } else {
+                        g2.setColor(Color.WHITE);
+                        g2.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+                    }
+
+                    String rankText = "#" + (i + 1);
+                    g2.drawString(rankText, lbX + 20, entryY);
+                    g2.drawString(ps.name, lbX + 60, entryY);
+                    
+                    String sText = String.valueOf(ps.score);
+                    int sWidth = g2.getFontMetrics().stringWidth(sText);
+                    g2.drawString(sText, lbX + lbW - sWidth - 20, entryY);
+
+                    entryY += 35;
+                }
+            }
             
-            int btnY_real = panelH / 2 + 110;
+            int btnY_real = panelH / 2 + 200;
             btnRetry.y = btnY_real;
             btnMenu.y = btnY_real;
             
@@ -633,13 +699,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 break;
             case KeyEvent.VK_B:
                 if (isGameOver) {
-                    saveFinalScore();
                     Main.switchPage(Main.DASHBOARD);
                 }
                 break;
             case KeyEvent.VK_R:
                 if (isGameOver) {
-                    saveFinalScore();
                     initGame();
                 }
                 break;
