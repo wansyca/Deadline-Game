@@ -598,7 +598,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Segoe UI Light", Font.PLAIN, 28));
-            String subText = "Kamu tertangkap dosen pelit nilai!";
+            String subText = "Yahh, telat submit tugas";
             int subWidth = g2.getFontMetrics().stringWidth(subText);
             g2.drawString(subText, (panelW - subWidth) / 2, panelH / 2 + 30);
             
