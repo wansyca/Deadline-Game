@@ -1,4 +1,4 @@
-    package com.deadline;
+package com.deadline;
 
 import javax.swing.*;
 import java.awt.*;

@@ -19,6 +19,7 @@ public class LeaderboardManager {
         }
     }
 
+
     public static void saveScore(String name, int score, int timeSeconds) {
         // Now handled by GamePanel calling ScoreService directly.
         // We keep this empty or keep basic file IO for backup if desired, 
