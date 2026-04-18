@@ -70,7 +70,7 @@ public class InputPlayerPanel extends JPanel {
         playBtn.addActionListener(e -> {
             String name = nameField.getText().trim();
             if (name.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Nama tidak boleh kosong!", "Peringatan", JOptionPane.WARNING_MESSAGE);
+                CustomAlert.showWarning(this, "Input Kosong", "Nama tidak boleh kosong!");
                 return;
             }
 
@@ -79,17 +79,15 @@ public class InputPlayerPanel extends JPanel {
             
             // 🔥 VALIDASI USERNAME DUPLIKAT
             if (playerService.isUsernameExists(name)) {
-                JOptionPane.showMessageDialog(null, 
-                    "Username '" + name + "' sudah digunakan.\nSilakan pilih nama lain!", 
-                    "Username Terpakai", 
-                    JOptionPane.ERROR_MESSAGE);
+                CustomAlert.showError(this, "Username Terpakai", 
+                    "Username '" + name + "' sudah digunakan.\nSilakan pilih nama lain!");
                 return;
             }
 
             int playerId = playerService.createPlayer(name, selectedAvatar);
             
             if (playerId == -1) {
-                JOptionPane.showMessageDialog(null, "Gagal membuat/mengambil data player!", "Error", JOptionPane.ERROR_MESSAGE);
+                CustomAlert.showError(this, "Database Error", "Gagal membuat/mengambil data player!");
                 return;
             }
 

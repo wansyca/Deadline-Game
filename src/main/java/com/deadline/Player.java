@@ -16,6 +16,7 @@ public class Player extends GameObject {
     private int carriedAssignments = 0;
     private final int MAX_CARRY = 3;
 
+    private int collectedBooks = 0;
     private int animTick = 0;
     private boolean facingRight = true;
 
@@ -172,5 +173,17 @@ public class Player extends GameObject {
 
     public void resetCarriedAssignments() {
         carriedAssignments = 0;
+    }
+
+    public int getCollectedBooks() {
+        return collectedBooks;
+    }
+
+    public void incrementCollectedBooks() {
+        collectedBooks++;
+    }
+
+    public void setCollectedBooks(int count) {
+        this.collectedBooks = count;
     }
 }

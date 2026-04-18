@@ -1,11 +1,9 @@
 package com.deadline;
 
-import java.io.*;
 import java.util.*;
 import com.deadline.backend.ScoreService;
 
 public class LeaderboardManager {
-    private static final String FILE_NAME = "leaderboard.txt";
 
     public static class PlayerScore {
         public String name;

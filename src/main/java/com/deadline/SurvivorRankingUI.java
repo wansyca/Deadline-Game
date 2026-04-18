@@ -28,7 +28,7 @@ public class SurvivorRankingUI extends JPanel {
 
         contentPanel = new JPanel(new BorderLayout());
         contentPanel.setOpaque(false);
-        
+
         add(contentPanel, BorderLayout.CENTER);
 
         addComponentListener(new ComponentAdapter() {
@@ -43,7 +43,8 @@ public class SurvivorRankingUI extends JPanel {
     }
 
     private void refreshData() {
-        if (contentPanel == null) return;
+        if (contentPanel == null)
+            return;
         contentPanel.removeAll();
         List<LeaderboardManager.PlayerScore> scores = LeaderboardManager.loadScores();
 
@@ -59,48 +60,34 @@ public class SurvivorRankingUI extends JPanel {
 
     // ===== HEADER =====
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                GradientPaint gp = new GradientPaint(0, 0, new Color(20, 20, 40), getWidth(), 0, new Color(10, 10, 20));
-                g2.setPaint(gp);
-                g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setColor(new Color(255, 255, 255, 30));
-                g2.drawLine(0, getHeight() - 1, getWidth(), getHeight() - 1);
-                g2.dispose();
-            }
-        };
-        header.setOpaque(false);
+        JPanel header = new JPanel(new BorderLayout());
         header.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+        header.setBackground(new Color(20, 20, 40));
 
-        JButton backBtn = new JButton("← BACK TO MENU") {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isPressed()) g2.setColor(new Color(50, 50, 70));
-                else if (getModel().isRollover()) g2.setColor(new Color(70, 70, 100));
-                else g2.setColor(new Color(40, 40, 60));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
+        JButton backBtn = new JButton("← BACK TO MENU");
         backBtn.setForeground(new Color(200, 220, 255));
-        backBtn.setFont(new Font("Segoe UI Semibold", Font.PLAIN, 13));
+        backBtn.setBackground(new Color(40, 40, 60));
         backBtn.setFocusPainted(false);
-        backBtn.setContentAreaFilled(false);
-        backBtn.setBorderPainted(false);
-        backBtn.setPreferredSize(new Dimension(150, 40));
+        backBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         backBtn.addActionListener(e -> Main.switchPage(Main.DASHBOARD));
 
-        JLabel title = new JLabel("HALL OF SURVIVORS", SwingConstants.CENTER);
+        JLabel title = new JLabel("HALL OF SURVIVORS");
         title.setForeground(Color.WHITE);
-        title.setFont(new Font("Segoe UI Light", Font.BOLD, 32));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        title.setHorizontalAlignment(SwingConstants.CENTER);
+
+
+        // PANEL KHUSUS BIAR BENER-BENER CENTER
+        JPanel centerPanel = new JPanel(new GridBagLayout());
+        centerPanel.setOpaque(false);
+        centerPanel.add(title);
+
 
         header.add(backBtn, BorderLayout.WEST);
-        header.add(title, BorderLayout.CENTER);
+        header.add(centerPanel, BorderLayout.CENTER);
+        header.add(Box.createHorizontalStrut(150), BorderLayout.EAST);
+
+        
 
         return header;
     }
@@ -116,9 +103,12 @@ public class SurvivorRankingUI extends JPanel {
         LeaderboardManager.PlayerScore p3 = scores.size() > 2 ? scores.get(2) : null;
 
         // Order: 2nd, 1st, 3rd
-        panel.add(createPodiumCard("2ND", p2 != null ? p2.name : "---", p2 != null ? String.valueOf(p2.score) : "0", 140, new Color(192, 192, 192)));
-        panel.add(createPodiumCard("1ST", p1 != null ? p1.name : "---", p1 != null ? String.valueOf(p1.score) : "0", 190, new Color(255, 215, 0)));
-        panel.add(createPodiumCard("3RD", p3 != null ? p3.name : "---", p3 != null ? String.valueOf(p3.score) : "0", 110, new Color(205, 127, 50)));
+        panel.add(createPodiumCard("2ND", p2 != null ? p2.name : "---", p2 != null ? String.valueOf(p2.score) : "0",
+                140, new Color(192, 192, 192)));
+        panel.add(createPodiumCard("1ST", p1 != null ? p1.name : "---", p1 != null ? String.valueOf(p1.score) : "0",
+                190, new Color(255, 215, 0)));
+        panel.add(createPodiumCard("3RD", p3 != null ? p3.name : "---", p3 != null ? String.valueOf(p3.score) : "0",
+                110, new Color(205, 127, 50)));
 
         return panel;
     }
@@ -143,16 +133,17 @@ public class SurvivorRankingUI extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
+
                 // Shadow
                 g2.setColor(new Color(0, 0, 0, 100));
                 g2.fillRoundRect(5, 5, getWidth() - 10, getHeight() - 5, 20, 20);
 
                 // Body
-                GradientPaint gp = new GradientPaint(0, 0, new Color(40, 40, 50), 0, getHeight(), new Color(20, 20, 30));
+                GradientPaint gp = new GradientPaint(0, 0, new Color(40, 40, 50), 0, getHeight(),
+                        new Color(20, 20, 30));
                 g2.setPaint(gp);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
-                
+
                 // Rank Highlight
                 g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 40));
                 g2.fillRoundRect(0, 0, getWidth(), 40, 20, 20);
@@ -162,7 +153,7 @@ public class SurvivorRankingUI extends JPanel {
                 g2.setColor(accent);
                 g2.setStroke(new BasicStroke(2.5f));
                 g2.drawRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 20, 20);
-                
+
                 g2.dispose();
             }
         };
@@ -218,13 +209,20 @@ public class SurvivorRankingUI extends JPanel {
                 this.thumbColor = new Color(60, 60, 80);
                 this.trackColor = new Color(20, 20, 30);
             }
+
             @Override
-            protected JButton createDecreaseButton(int orientation) { return createZeroButton(); }
+            protected JButton createDecreaseButton(int orientation) {
+                return createZeroButton();
+            }
+
             @Override
-            protected JButton createIncreaseButton(int orientation) { return createZeroButton(); }
+            protected JButton createIncreaseButton(int orientation) {
+                return createZeroButton();
+            }
+
             private JButton createZeroButton() {
                 JButton b = new JButton();
-                b.setPreferredSize(new Dimension(0,0));
+                b.setPreferredSize(new Dimension(0, 0));
                 return b;
             }
         });

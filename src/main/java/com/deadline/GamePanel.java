@@ -83,7 +83,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     // UI Buttons bounds
     private Rectangle btnMenu;
     private Rectangle btnRetry;
-    private Rectangle btnExit;
     private Rectangle btnExitGame;
 
     public GamePanel() {
@@ -97,48 +96,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 Point p = e.getPoint();
                 // 🔥 EXIT SAAT MAIN
                 if (!isGameOver && btnExitGame != null && btnExitGame.contains(p)) {
-                    UIManager.put("OptionPane.background", new Color(30, 30, 30));
-                    UIManager.put("Panel.background", new Color(30, 30, 30));
-
-                    UIManager.put("OptionPane.messageForeground", Color.WHITE);
-                    UIManager.put("OptionPane.messageFont", new Font("Segoe UI", Font.BOLD, 14));
-
-                    UIManager.put("Button.background", new Color(50, 50, 50));
-                    UIManager.put("Button.foreground", Color.WHITE);
-                    UIManager.put("Button.font", new Font("Segoe UI", Font.BOLD, 12));
-
-                    JPanel panel = new JPanel();
-                    panel.setBackground(new Color(25, 25, 30));
-                    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-
-                    JLabel title = new JLabel("KONFIRMASI KELUAR");
-                    title.setForeground(new Color(255, 80, 80));
-                    title.setFont(new Font("Segoe UI", Font.BOLD, 18));
-                    title.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-
-                    JLabel msg = new JLabel("<html>Yakin mau keluar?<br>Score kamu tidak akan masuk leaderboard.</html>");
-                    msg.setForeground(Color.WHITE);
-                    msg.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-                    msg.setAlignmentX(JLabel.CENTER_ALIGNMENT);
-
-                    panel.add(Box.createVerticalStrut(10));
-                    panel.add(title);
-                    panel.add(Box.createVerticalStrut(10));
-                    panel.add(msg);
-                    panel.add(Box.createVerticalStrut(10));
-
-                    int result = JOptionPane.showOptionDialog(
+                    int result = CustomAlert.showConfirm(
                             GamePanel.this,
-                            panel,
                             "EXIT GAME",
-                            JOptionPane.YES_NO_OPTION,
-                            JOptionPane.PLAIN_MESSAGE,
-                            null,
-                            new String[]{"Keluar", "Batal"},
-                            "Batal"
+                            "Yakin mau keluar?\nScore kamu tidak akan masuk leaderboard.",
+                            new String[]{"Keluar", "Batal"}
                     );
 
-                    if (result == JOptionPane.YES_OPTION) {
+                    if (result == 0) { // Index 0 is "Keluar"
                         Main.switchPage(Main.DASHBOARD);
                     }
                 }
@@ -361,9 +326,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     int btnY = panelH / 2 + 160;
 
-    btnRetry = new Rectangle(panelW / 2 - 310, btnY, 180, 50);
-    btnMenu  = new Rectangle(panelW / 2 - 90, btnY, 180, 50);
-    btnExit  = new Rectangle(panelW / 2 + 130, btnY, 180, 50);
+    btnRetry = new Rectangle(panelW / 2 - 200, btnY, 180, 50);
+    btnMenu  = new Rectangle(panelW / 2 + 20, btnY, 180, 50);
 
     btnExitGame = new Rectangle(panelW - 130, 25, 100, 40);
 }
