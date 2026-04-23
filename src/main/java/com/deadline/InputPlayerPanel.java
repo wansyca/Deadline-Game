@@ -6,6 +6,10 @@ import java.awt.event.*;
 import java.awt.image.CropImageFilter;
 import java.awt.image.FilteredImageSource;
 import com.deadline.backend.PlayerService;
+import javax.sound.sampled.*;
+import java.io.IOException;
+import java.net.URL;
+
 
 @SuppressWarnings("unused")
 public class InputPlayerPanel extends JPanel {
@@ -24,8 +28,32 @@ public class InputPlayerPanel extends JPanel {
     private JLabel avatarLabel;
 
     private Image bg;
+     private Clip clip;
+
+      private void playMusic() {
+    try {
+        URL soundURL = getClass().getResource("/sound/Midnight Focus Loop.wav");
+        System.out.println(soundURL);
+        AudioInputStream audioIn = AudioSystem.getAudioInputStream(soundURL);
+
+        clip = AudioSystem.getClip();
+        clip.open(audioIn);
+
+        FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+        gainControl.setValue(-5.0f);
+
+
+        clip.loop(Clip.LOOP_CONTINUOUSLY);
+        clip.start();
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+
 
     public InputPlayerPanel() {
+        playMusic();
         setLayout(null);
 
         bg = new ImageIcon(getClass().getResource("/assets/bg.png")).getImage();

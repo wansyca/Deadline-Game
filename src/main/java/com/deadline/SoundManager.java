@@ -9,17 +9,21 @@ import java.io.InputStream;
  */
 public class SoundManager {
     public static void playClickSound() {
-        playSound("/assets/sound/click.wav", "click sound");
+        playSound("/assets/sound/click.wav", "click sound", -15.0f);
     }
 
     public static void playBookSound() {
-        playSound("/assets/sound/book.wav", "book collection sound");
+        playSound("/assets/sound/book.wav", "book collection sound", 0.0f);
+    }
+
+    public static void playGameOverSound() {
+        playSound("/assets/sound/Gameover.wav", "game over sound", 0.0f);
     }
 
     /**
      * Internal helper to play sound effects using javax.sound.sampled.Clip.
      */
-    private static void playSound(String path, String description) {
+    private static void playSound(String path, String description, float volume) {
         try {
             // Load the sound file from resources
             InputStream is = SoundManager.class.getResourceAsStream(path);
@@ -32,9 +36,17 @@ public class SoundManager {
             InputStream bis = new BufferedInputStream(is);
             AudioInputStream audioStream = AudioSystem.getAudioInputStream(bis);
 
-            // Get a clip resource
+            // Get a clip resource (Always new clip to avoid shared volume state)
             Clip clip = AudioSystem.getClip();
             clip.open(audioStream);
+
+            // Set volume using FloatControl
+            try {
+                FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+                gainControl.setValue(volume);
+            } catch (IllegalArgumentException e) {
+                System.err.println("Volume control not supported for " + description);
+            }
 
             // Start playing the clip
             clip.start();

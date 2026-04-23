@@ -407,16 +407,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     }
 
     public void playGameOverSound() {
-        try {
-            AudioInputStream audio = AudioSystem.getAudioInputStream(
-                getClass().getResource("/assets/sound/Gameover.wav")
-            );
-            Clip clip = AudioSystem.getClip();
-            clip.open(audio);
-            clip.start();
-        } catch (Exception e) {
-            System.err.println("Gagal memutar sound game over: " + e.getMessage());
-        }
+        SoundManager.playGameOverSound();
     }
     
     // =========================

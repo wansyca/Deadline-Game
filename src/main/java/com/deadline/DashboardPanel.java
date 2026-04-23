@@ -2,6 +2,9 @@ package com.deadline;
 
 import javax.swing.*;
 import java.awt.*;
+import javax.sound.sampled.*;
+import java.io.IOException;
+import java.net.URL;
 
 public class DashboardPanel extends JPanel {
 
@@ -11,7 +14,31 @@ public class DashboardPanel extends JPanel {
     private JLabel subtitle;
     private JButton start, leaderboard, exit;
 
+    private Clip clip;
+
+   private void playMusic() {
+    try {
+        URL soundURL = getClass().getResource("/sound/Midnight Focus Loop.wav");
+        System.out.println(soundURL);
+        AudioInputStream audioIn = AudioSystem.getAudioInputStream(soundURL);
+
+        clip = AudioSystem.getClip();
+        clip.open(audioIn);
+
+        FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+        gainControl.setValue(-25.0f);
+
+
+        clip.loop(Clip.LOOP_CONTINUOUSLY);
+        clip.start();
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+
     public DashboardPanel() {
+        playMusic();
         setLayout(null);
 
         bg = new ImageIcon(getClass().getResource("/assets/bg.png")).getImage();
