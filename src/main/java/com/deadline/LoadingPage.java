@@ -32,7 +32,7 @@ public class LoadingPage extends JPanel {
         add(centerPanel, BorderLayout.CENTER);
 
         // 🔥 progress bar custom
-        Timer timer = new Timer(20, e -> {
+        Timer timer = new Timer(30, e -> {
             if (progress < 100) {
                 progress++;
                 percent.setText("Menyiapkan berkas deadline... " + progress + "%");

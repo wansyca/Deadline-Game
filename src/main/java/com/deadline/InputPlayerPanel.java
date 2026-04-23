@@ -68,6 +68,7 @@ public class InputPlayerPanel extends JPanel {
         // BUTTON LANJUTKAN
         playBtn = createMainButton("LANJUTKAN");
         playBtn.addActionListener(e -> {
+            SoundManager.playClickSound();
             String name = nameField.getText().trim();
             if (name.isEmpty()) {
                 CustomAlert.showWarning(this, "Input Kosong", "Nama tidak boleh kosong!");
@@ -91,13 +92,16 @@ public class InputPlayerPanel extends JPanel {
                 return;
             }
 
-    Main.goToGameWithLoading(playerId, name, selectedAvatar);
+            Main.goToGameWithLoading(playerId, name, selectedAvatar);
 });
         add(playBtn);
 
         // BUTTON BACK
         backBtn = createMainButton("KEMBALI");
-        backBtn.addActionListener(e -> Main.switchPage(Main.DASHBOARD));
+        backBtn.addActionListener(e -> {
+            SoundManager.playClickSound();
+            Main.switchPage(Main.DASHBOARD);
+        });
         add(backBtn);
 
         // 🔥 AUTO CENTER SAAT RESIZE
@@ -214,7 +218,10 @@ public class InputPlayerPanel extends JPanel {
         btn.setFocusPainted(false);
         btn.setBorder(null);
 
-        btn.addActionListener(e -> selectCard(btn, path));
+        btn.addActionListener(e -> {
+            SoundManager.playClickSound();
+            selectCard(btn, path);
+        });
 
         return btn;
     }

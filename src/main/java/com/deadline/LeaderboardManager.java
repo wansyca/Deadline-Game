@@ -72,10 +72,10 @@ public class LeaderboardManager {
         }
     }
 
-    public static List<PlayerScore> loadScores() {
+    public static List<PlayerScore> loadScores(int limit) {
         List<PlayerScore> scores = new ArrayList<>();
         ScoreService scoreService = new ScoreService();
-        List<Map<String, Object>> dbScores = scoreService.getAllScores();
+        List<Map<String, Object>> dbScores = scoreService.getAllScores(limit);
         
         for (Map<String, Object> record : dbScores) {
             String name = (String) record.get("username");

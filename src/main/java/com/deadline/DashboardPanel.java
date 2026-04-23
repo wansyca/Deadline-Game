@@ -30,15 +30,24 @@ public class DashboardPanel extends JPanel {
 
         // BUTTONS
         start = createButton("START GAME");
-        start.addActionListener(e -> Main.switchPage(Main.INPUT_PLAYER));
+        start.addActionListener(e -> {
+            SoundManager.playClickSound();
+            Main.switchPage(Main.INPUT_PLAYER);
+        });
         add(start);
 
         leaderboard = createButton("LEADERBOARD");
-        leaderboard.addActionListener(e -> Main.goToLeaderboardWithLoading());
+        leaderboard.addActionListener(e -> {
+            SoundManager.playClickSound();
+            Main.goToLeaderboardWithLoading();
+        });
         add(leaderboard);
 
         exit = createButton("EXIT");
-        exit.addActionListener(e -> System.exit(0));
+        exit.addActionListener(e -> {
+            SoundManager.playClickSound();
+            System.exit(0);
+        });
         add(exit);
 
         // RESPONSIVE

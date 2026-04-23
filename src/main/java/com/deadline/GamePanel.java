@@ -26,6 +26,9 @@ import java.util.Random;
 import java.awt.Shape;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 
 
 public class GamePanel extends JPanel implements ActionListener, KeyListener {
@@ -63,6 +66,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private Random random = new Random();
     private boolean isGameOver = false;
     private boolean scoreSaved = false;
+    private boolean soundPlayed = false;
     private int leaderboardScrollY = 0;
 
     private Image deskImage;
@@ -104,6 +108,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 Point p = e.getPoint();
                 // 🔥 EXIT SAAT MAIN
                 if (!isGameOver && btnExitGame != null && btnExitGame.contains(p)) {
+                    SoundManager.playClickSound();
                     int result = CustomAlert.showConfirm(
                             GamePanel.this,
                             "EXIT GAME",
@@ -117,8 +122,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 }
                 if (isGameOver) {
                     if (btnRetry != null && btnRetry.contains(p)) {
+                        SoundManager.playClickSound();
                         initGame();
                     } else if (btnMenu != null && btnMenu.contains(p)) {
+                        SoundManager.playClickSound();
                         Main.switchPage(Main.DASHBOARD);
                     }
                 }
@@ -202,6 +209,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private void initGame() {
         isGameOver = false;
         scoreSaved = false;
+        soundPlayed = false;
         leaderboardScrollY = 0;
         survivalTime = 0;
         ticks = 0;
@@ -356,10 +364,16 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         obstacles.add(new Rectangle(x + w - 80, y + h - 150, 80, 150));
     }
 
-   private void loadLeaderboardFromDB() {
-    com.deadline.backend.ScoreService ss = new com.deadline.backend.ScoreService();
-    cachedTopScores = ss.getAllScores();
-}
+    private void loadLeaderboardFromDB() {
+        new Thread(() -> {
+            com.deadline.backend.ScoreService ss = new com.deadline.backend.ScoreService();
+            List<Map<String, Object>> scores = ss.getAllScores(5);
+            SwingUtilities.invokeLater(() -> {
+                cachedTopScores = scores;
+                repaint();
+            });
+        }).start();
+    }
 
     private void updateButtonBounds() {
     int panelW = getWidth();
@@ -391,6 +405,19 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         } while (overlap);
         assignments.add(a);
     }
+
+    public void playGameOverSound() {
+        try {
+            AudioInputStream audio = AudioSystem.getAudioInputStream(
+                getClass().getResource("/assets/sound/Gameover.wav")
+            );
+            Clip clip = AudioSystem.getClip();
+            clip.open(audio);
+            clip.start();
+        } catch (Exception e) {
+            System.err.println("Gagal memutar sound game over: " + e.getMessage());
+        }
+    }
     
     // =========================
     // GAME LOOP
@@ -403,6 +430,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     private void updateGame() {
         if (isGameOver) {
+            if (!soundPlayed) {
+                playGameOverSound();
+                soundPlayed = true;
+            }
             return;
         }
 
@@ -414,9 +445,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
             if (timeLeft <= 0) {
                 isGameOver = true;
-                saveFinalScore();
-                loadLeaderboardFromDB();
-    }
+                if (!scoreSaved) {
+                    scoreSaved = true;
+                    new Thread(() -> {
+                        saveFinalScore();
+                        loadLeaderboardFromDB();
+                    }).start();
+                }
+            }
 }
 
         // 👨‍🏫 2. SPAWN DOSEN BERTAHAP (LEBIH CEPAT)
@@ -478,11 +514,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             if (l.intersects(player)) {
                 System.out.println("KETANGKAP DOSEN 💀");
                 isGameOver = true;
-
                 if (!scoreSaved) {
-                    saveFinalScore();        // simpan ke MySQL & File (HANYA SEKALI)
-                    loadLeaderboardFromDB(); // ambil leaderboard dari DB
-                    scoreSaved = true;       // Kunci agar tidak save berkali-kali
+                    scoreSaved = true;
+                    new Thread(() -> {
+                        saveFinalScore();
+                        loadLeaderboardFromDB();
+                    }).start();
                 }
             }
         }
@@ -491,6 +528,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         for (int i = 0; i < assignments.size(); i++) {
             Assignment a = assignments.get(i);
             if (player.intersects(a)) {
+                SoundManager.playBookSound();
                 collectedBooks++;
                 assignments.remove(i);
                 if (collectedBooks >= targetBooks) {
@@ -742,7 +780,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
                 g2.setFont(new Font("Segoe UI", Font.BOLD, 16));
                 g2.setColor(new Color(150, 150, 180));
-                g2.drawString("ALL SURVIVORS (SCROLL)", lbX + 20, lbY + 30);
+                g2.drawString("TOP 5 SURVIVORS", lbX + 20, lbY + 30);
 
                 Shape oldClip = g2.getClip();
                 g2.clipRect(lbX, lbY + 40, lbW, lbH - 50);

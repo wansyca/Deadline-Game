@@ -67,7 +67,9 @@ public class Main {
     public static void goToLeaderboardWithLoading() {
         switchPage(LOADING);
 
-        Timer timer = new Timer(2000, e -> switchPage(LEADERBOARD));
+        Timer timer = new Timer(3000, e -> {
+            switchPage(LEADERBOARD);
+        });
         timer.setRepeats(false);
         timer.start();
     }
@@ -79,7 +81,9 @@ public class Main {
         
         switchPage(LOADING);
 
-        Timer timer = new Timer(2000, e -> switchPage(GAME));
+        Timer timer = new Timer(3000, e -> {
+            switchPage(GAME);
+        });
         timer.setRepeats(false);
         timer.start();
     }

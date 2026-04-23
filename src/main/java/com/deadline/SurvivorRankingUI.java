@@ -47,7 +47,7 @@ public class SurvivorRankingUI extends JPanel {
         if (contentPanel == null)
             return;
         contentPanel.removeAll();
-        List<LeaderboardManager.PlayerScore> scores = LeaderboardManager.loadScores();
+        List<LeaderboardManager.PlayerScore> scores = LeaderboardManager.loadScores(100);
 
         // Podiums
         contentPanel.add(createPodiumSection(scores), BorderLayout.NORTH);
@@ -70,7 +70,10 @@ public class SurvivorRankingUI extends JPanel {
         backBtn.setBackground(new Color(40, 40, 60));
         backBtn.setFocusPainted(false);
         backBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        backBtn.addActionListener(e -> Main.switchPage(Main.DASHBOARD));
+        backBtn.addActionListener(e -> {
+            SoundManager.playClickSound();
+            Main.switchPage(Main.DASHBOARD);
+        });
 
         JLabel title = new JLabel("HALL OF SURVIVORS");
         title.setForeground(Color.WHITE);

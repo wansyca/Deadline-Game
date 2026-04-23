@@ -8,6 +8,7 @@ public class Player extends GameObject {
     private Image avatar;
     private String name = "Mahasiswa";
 
+    private String avatarPath;
     private double prevExactX, prevExactY;
     private double exactX, exactY;
     private double velX = 0, velY = 0;
@@ -30,6 +31,7 @@ public class Player extends GameObject {
     }
 
     public void setAvatar(String path) {
+        this.avatarPath = path;
         avatar = new ImageIcon(getClass().getResource(path)).getImage();
     }
 
@@ -57,15 +59,17 @@ public class Player extends GameObject {
         dX = dx;
         dY = dy;
 
-        if (dx > 0) facingRight = true;
-        if (dx < 0) facingRight = false;
+        if (dx > 0)
+            facingRight = true;
+        if (dx < 0)
+            facingRight = false;
     }
 
     @Override
     public void update() {
         // Kecepatan gerak maksimal
         double speedLimit = 6.5;
-        
+
         // Normalisasi diagonal (agar gerak serong tidak lebih cepat)
         double inputX = dX;
         double inputY = dY;
@@ -117,7 +121,8 @@ public class Player extends GameObject {
 
     // 🔥 HITBOX (PAD LEBIH BESAR BIAR MUDAH LEWAT CELAH MEJA)
     public Rectangle getBounds() {
-        // Kita beri padding 45px kiri-kanan agar hitbox asli hanya ~70px (mirip sebelumnya)
+        // Kita beri padding 45px kiri-kanan agar hitbox asli hanya ~70px (mirip
+        // sebelumnya)
         return new Rectangle(x + 45, y + 45, width - 90, height - 90);
     }
 
@@ -188,7 +193,6 @@ public class Player extends GameObject {
     }
 
     public String getAvatarPath() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getAvatarPath'");
+        return avatarPath;
     }
 }
