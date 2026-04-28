@@ -28,15 +28,14 @@ public class Main {
             frame = new JFrame("23:59 — SUBMIT OR DIE");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            // FULLSCREEN MODE
-            frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-            // frame.setUndecorated(true); // aktifkan kalau mau tanpa border
-
-            frame.setLocationRelativeTo(null);
-            frame.setResizable(true);
-
-            cardLayout = new CardLayout();
-            mainPanel = new JPanel(cardLayout);
+            // FIXED RESOLUTION (4:3 Ratio to match background)
+            int width = 1024;
+            int height = 768;
+            
+            mainPanel = new JPanel(cardLayout = new CardLayout());
+            mainPanel.setPreferredSize(new Dimension(width, height));
+            
+            frame.setResizable(false);
 
             mainPanel.add(new DashboardPanel(), DASHBOARD);
             mainPanel.add(new InputPlayerPanel(), INPUT_PLAYER);
@@ -47,6 +46,8 @@ public class Main {
             mainPanel.add(gamePanel, GAME);
 
             frame.add(mainPanel);
+            frame.pack(); // Adjust window to fit preferred size
+            frame.setLocationRelativeTo(null); // Center on screen
             frame.setVisible(true);
 
             switchPage(DASHBOARD);

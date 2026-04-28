@@ -40,21 +40,33 @@ public class InputPlayerPanel extends JPanel {
     private JLabel avatarLabel;
 
     private List<AvatarButton> avatarButtons = new ArrayList<>();
+    private Image bgImage;
 
     public InputPlayerPanel() {
         setLayout(null);
-        setBackground(new Color(20, 20, 30));
 
-        // TITLE
-        title = new JLabel("PLAYER REGISTRATION", SwingConstants.CENTER);
-        title.setFont(new Font("Monospaced", Font.BOLD, 36));
-        title.setForeground(new Color(255, 50, 50));
+        // LOAD BACKGROUND
+        try {
+            java.net.URL bgUrl = getClass().getResource("/assets/bg.png");
+            if (bgUrl != null) {
+                bgImage = new ImageIcon(bgUrl).getImage();
+            } else {
+                System.err.println("❌ InputPlayer Background not found!");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // TITLE - CLEAN WHITE
+        title = new JLabel("P L A Y E R   R E G I S T R A T I O N", SwingConstants.CENTER);
+        title.setFont(new Font("Monospaced", Font.BOLD, 30));
+        title.setForeground(Color.WHITE);
         add(title);
 
         // NAME
         nameLabel = new JLabel("Nama Mahasiswa:");
-        nameLabel.setFont(new Font("Monospaced", Font.BOLD, 18));
-        nameLabel.setForeground(Color.WHITE);
+        nameLabel.setFont(new Font("Monospaced", Font.BOLD, 16));
+        nameLabel.setForeground(new Color(200, 200, 200)); // Light Grey
         add(nameLabel);
 
         nameField = new JTextField();
@@ -69,15 +81,15 @@ public class InputPlayerPanel extends JPanel {
 
         // AVATAR LABEL
         avatarLabel = new JLabel("PILIH KARAKTER:");
-        avatarLabel.setFont(new Font("Monospaced", Font.BOLD, 18));
-        avatarLabel.setForeground(Color.WHITE);
+        avatarLabel.setFont(new Font("Monospaced", Font.BOLD, 16));
+        avatarLabel.setForeground(new Color(200, 200, 200));
         add(avatarLabel);
 
         // AVATAR
         setupAvatarButtons();
 
         // BUTTON LANJUTKAN
-        playBtn = createMainButton("LANJUTKAN", new Color(40, 150, 40));
+        playBtn = createMainButton("L A N J U T K A N", new Color(40, 150, 40));
         playBtn.addActionListener(e -> {
             SoundManager.playClickSound();
 
@@ -104,7 +116,7 @@ public class InputPlayerPanel extends JPanel {
         add(playBtn);
 
         // BUTTON BACK
-        backBtn = createMainButton("KEMBALI", new Color(150, 40, 40));
+        backBtn = createMainButton("K E M B A L I", new Color(150, 40, 40));
         backBtn.addActionListener(e -> {
             SoundManager.playClickSound();
             Main.switchPage(Main.DASHBOARD);
@@ -151,9 +163,9 @@ public class InputPlayerPanel extends JPanel {
 
         avatarLabel.setBounds(centerX - 150, 230, 300, 25);
 
-        // 🔥 BESARIN AVATAR
-        int size = 180;
-        int gap = 40;
+        // 🔥 ADJUST AVATAR SIZE (96-128 range, using 128)
+        int size = 128;
+        int gap = 50;
 
         int totalWidth = (avatarButtons.size() * size) + ((avatarButtons.size() - 1) * gap);
         int startX = centerX - (totalWidth / 2);
@@ -185,11 +197,20 @@ public class InputPlayerPanel extends JPanel {
                 g2.setColor(current);
                 g2.fillRect(0, 0, getWidth() - 4, getHeight() - 4);
 
-                g2.setColor(Color.WHITE);
+                g2.setColor(new Color(200, 200, 200));
                 g2.drawRect(0, 0, getWidth() - 5, getHeight() - 5);
 
                 g2.dispose();
-                super.paintComponent(g);
+                
+                // CUSTOM TEXT DRAWING
+                Graphics2D gt = (Graphics2D) g.create();
+                gt.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                gt.setFont(getFont());
+                gt.setColor(Color.WHITE);
+                
+                int tw = gt.getFontMetrics().stringWidth(getText());
+                gt.drawString(getText(), (getWidth() - tw) / 2 - 2, getHeight() / 2 + 6);
+                gt.dispose();
             }
         };
 
@@ -206,19 +227,22 @@ public class InputPlayerPanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-
         Graphics2D g2 = (Graphics2D) g;
-        g2.setColor(new Color(30, 30, 40));
-        g2.fillRect(0, 0, getWidth(), getHeight());
 
-        g2.setColor(new Color(25, 25, 35));
-        for (int i = 0; i < getWidth(); i += 32) {
-            for (int j = 0; j < getHeight(); j += 32) {
-                if ((i + j) % 64 == 0) {
-                    g2.fillRect(i, j, 32, 32);
-                }
-            }
+        // PIXEL STYLE RENDERING
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+
+        // RENDER BACKGROUND FULL (PAS KARENA RESOLUSI TETAP)
+        if (bgImage != null) {
+            g2.drawImage(bgImage, 0, 0, getWidth(), getHeight(), null);
+        } else {
+            g2.setColor(new Color(20, 20, 30));
+            g2.fillRect(0, 0, getWidth(), getHeight());
         }
+
+        // DARK OVERLAY (rgba(0, 0, 0, 0.6))
+        g2.setColor(new Color(0, 0, 0, 153));
+        g2.fillRect(0, 0, getWidth(), getHeight());
     }
 
     private class AvatarButton extends JPanel {
