@@ -1,6 +1,0 @@
-ana,0,35
-ayu,0,18
-chika,0,44
-uput,0,98
-puput,0,70
-Mahasiswa,0,3

@@ -14,7 +14,7 @@ public class SubmissionService {
     public void submitTask(int playerId, String title, String status) {
         String query = "INSERT INTO submissions (player_id, title, status) VALUES (?, ?, ?)";
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+                PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, playerId);
             pstmt.setString(2, title);
             pstmt.setString(3, status);
@@ -28,7 +28,7 @@ public class SubmissionService {
         List<Map<String, Object>> submissions = new ArrayList<>();
         String query = "SELECT title, status, submitted_at FROM submissions WHERE player_id = ? ORDER BY submitted_at DESC";
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+                PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, playerId);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
