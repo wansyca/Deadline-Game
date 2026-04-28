@@ -4,6 +4,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -57,16 +58,48 @@ public class InputPlayerPanel extends JPanel {
             e.printStackTrace();
         }
 
-        // TITLE - CLEAN WHITE
-        title = new JLabel("P L A Y E R   R E G I S T R A T I O N", SwingConstants.CENTER);
-        title.setFont(new Font("Monospaced", Font.BOLD, 30));
-        title.setForeground(Color.WHITE);
+        // TITLE - 3D PIXEL STYLE
+        title = new JLabel("PLAYER REGISTRATION", SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int tx = (getWidth() - fm.stringWidth(getText())) / 2;
+                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                
+                // 3D Shadow
+                g2.setColor(new Color(0, 80, 255));
+                g2.drawString(getText(), tx + 4, ty + 4);
+                g2.setColor(new Color(255, 0, 0));
+                g2.drawString(getText(), tx + 2, ty + 2);
+                
+                g2.setColor(Color.WHITE);
+                g2.drawString(getText(), tx, ty);
+                g2.dispose();
+            }
+        };
+        title.setFont(new Font("Monospaced", Font.BOLD, 40));
         add(title);
 
-        // NAME
-        nameLabel = new JLabel("Nama Mahasiswa:");
-        nameLabel.setFont(new Font("Monospaced", Font.BOLD, 16));
-        nameLabel.setForeground(new Color(200, 200, 200)); // Light Grey
+        // NAME - PIXEL STYLE
+        nameLabel = new JLabel("Nama Mahasiswa:") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                g2.setFont(getFont());
+                
+                g2.setColor(new Color(150, 0, 0)); // Red shadow
+                g2.drawString(getText(), 2, 18);
+                g2.setColor(Color.WHITE);
+                g2.drawString(getText(), 0, 16);
+                g2.dispose();
+            }
+        };
+        nameLabel.setFont(new Font("Monospaced", Font.BOLD, 18));
         add(nameLabel);
 
         nameField = new JTextField();
@@ -79,10 +112,22 @@ public class InputPlayerPanel extends JPanel {
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)));
         add(nameField);
 
-        // AVATAR LABEL
-        avatarLabel = new JLabel("PILIH KARAKTER:");
-        avatarLabel.setFont(new Font("Monospaced", Font.BOLD, 16));
-        avatarLabel.setForeground(new Color(200, 200, 200));
+        // AVATAR LABEL - PIXEL STYLE
+        avatarLabel = new JLabel("PILIH KARAKTER:") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                g2.setFont(getFont());
+                
+                g2.setColor(new Color(150, 0, 0));
+                g2.drawString(getText(), 2, 18);
+                g2.setColor(Color.WHITE);
+                g2.drawString(getText(), 0, 16);
+                g2.dispose();
+            }
+        };
+        avatarLabel.setFont(new Font("Monospaced", Font.BOLD, 18));
         add(avatarLabel);
 
         // AVATAR
@@ -202,14 +247,23 @@ public class InputPlayerPanel extends JPanel {
 
                 g2.dispose();
                 
-                // CUSTOM TEXT DRAWING
+                // TEXT DRAWING (3D PIXEL SHADOW)
                 Graphics2D gt = (Graphics2D) g.create();
                 gt.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
                 gt.setFont(getFont());
-                gt.setColor(Color.WHITE);
+                FontMetrics fm = gt.getFontMetrics();
                 
-                int tw = gt.getFontMetrics().stringWidth(getText());
-                gt.drawString(getText(), (getWidth() - tw) / 2 - 2, getHeight() / 2 + 6);
+                int tx = (getWidth() - fm.stringWidth(getText())) / 2 - 3;
+                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                
+                // 3D Shadow Layers
+                gt.setColor(new Color(0, 100, 255)); // Blue
+                gt.drawString(getText(), tx + 4, ty + 4);
+                gt.setColor(new Color(255, 0, 0)); // Red
+                gt.drawString(getText(), tx + 2, ty + 2);
+                
+                gt.setColor(Color.WHITE);
+                gt.drawString(getText(), tx, ty);
                 gt.dispose();
             }
         };

@@ -3,6 +3,7 @@ package com.deadline.ui;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -39,50 +40,78 @@ public class DashboardPanel extends JPanel {
             e.printStackTrace();
         }
 
-        // TIMER (23:59) - BOLD CRIMSON PIXEL
+        // TIMER (23:59) - RED WITH GLOW
         title = new JLabel("23:59", SwingConstants.CENTER) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
                 
-                // Solid Pixel Shadow
                 g2.setFont(getFont());
-                g2.setColor(new Color(0, 0, 0, 150));
-                g2.drawString(getText(), 4, 74);
+                FontMetrics fm = g2.getFontMetrics();
+                int tx = (getWidth() - fm.stringWidth(getText())) / 2;
+                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
                 
-                // Main Crimson Text
-                g2.setColor(new Color(220, 40, 40)); 
-                g2.drawString(getText(), 0, 70);
+                // Subtle Glow
+                g2.setColor(new Color(255, 0, 0, 60));
+                g2.drawString(getText(), tx + 4, ty + 4);
+                g2.drawString(getText(), tx - 4, ty - 4);
+                
+                // Main Red Text
+                g2.setColor(new Color(255, 0, 0)); 
+                g2.drawString(getText(), tx, ty);
                 g2.dispose();
             }
         };
-        title.setFont(new Font("Monospaced", Font.BOLD, 110));
+        title.setFont(new Font("Monospaced", Font.BOLD, 120));
         add(title);
 
-        // TITLE (SUBMIT OR DIE) - RED & CLEAN
-        subtitle = new JLabel("SUBMIT OR DIE", SwingConstants.CENTER);
-        subtitle.setFont(new Font("Monospaced", Font.BOLD, 28));
-        subtitle.setForeground(new Color(220, 40, 40));
+        // TITLE (SUBMIT OR DIE) - 3D PIXEL STYLE
+        subtitle = new JLabel("SUBMIT OR DIE", SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                
+                String text = getText();
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int tx = (getWidth() - fm.stringWidth(text)) / 2;
+                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                
+                // Layer 2: Blue Shadow
+                g2.setColor(new Color(0, 80, 255));
+                g2.drawString(text, tx + 4, ty + 4);
+                
+                // Layer 1: Red Shadow
+                g2.setColor(new Color(255, 0, 0));
+                g2.drawString(text, tx + 2, ty + 2);
+                
+                // Main White
+                g2.setColor(Color.WHITE);
+                g2.drawString(text, tx, ty);
+                g2.dispose();
+            }
+        };
+        subtitle.setFont(new Font("Monospaced", Font.BOLD, 45));
         add(subtitle);
 
-        // BUTTONS - DEEP RED PIXEL STYLE
-        Color crimsonRed = new Color(160, 0, 0);
-        start = createButton("START GAME", crimsonRed);
+        // BUTTONS - RETRO COLORED STYLE
+        start = createButton("START GAME", new Color(34, 139, 34)); // Forest Green
         start.addActionListener(e -> {
             SoundManager.playClickSound();
             Main.switchPage(Main.INPUT_PLAYER);
         });
         add(start);
 
-        leaderboard = createButton("LEADERBOARD", crimsonRed);
+        leaderboard = createButton("LEADERBOARD", new Color(218, 165, 32)); // Goldenrod
         leaderboard.addActionListener(e -> {
             SoundManager.playClickSound();
             Main.goToLeaderboardWithLoading();
         });
         add(leaderboard);
 
-        exit = createButton("EXIT", crimsonRed);
+        exit = createButton("EXIT", new Color(178, 34, 34)); // Firebrick Red
         exit.addActionListener(e -> {
             SoundManager.playClickSound();
             System.exit(0);
@@ -134,34 +163,39 @@ public class DashboardPanel extends JPanel {
                     current = baseColor.brighter();
                 }
 
-                // 1. CHUNKY PIXEL SHADOW (Bottom-Right)
-                g2.setColor(new Color(0, 0, 0, 150));
+                // 1. THICK PIXEL SHADOW (Deep black)
+                g2.setColor(Color.BLACK);
                 g2.fillRect(6, 6, getWidth() - 6, getHeight() - 6);
 
-                // 2. MAIN BUTTON BODY
+                // 2. MAIN BODY
                 g2.setColor(current);
                 g2.fillRect(0, 0, getWidth() - 6, getHeight() - 6);
 
-                // 3. PIXEL HIGHLIGHT (Top-Left)
-                g2.setColor(new Color(255, 255, 255, 60));
-                g2.fillRect(0, 0, getWidth() - 6, 4); // Top
-                g2.fillRect(0, 0, 4, getHeight() - 6); // Left
-
-                // 4. THICK PIXEL BORDER (Darker outline)
-                g2.setColor(current.darker().darker());
-                g2.setStroke(new java.awt.BasicStroke(4));
-                g2.drawRect(2, 2, getWidth() - 10, getHeight() - 10);
+                // 3. PIXEL BORDER (Double line)
+                g2.setColor(Color.BLACK);
+                g2.drawRect(0, 0, getWidth() - 7, getHeight() - 7);
+                g2.setColor(new Color(255, 255, 255, 100)); // Inner highlight border
+                g2.drawRect(2, 2, getWidth() - 11, getHeight() - 11);
 
                 g2.dispose();
                 
-                // TEXT
+                // TEXT DRAWING (3D PIXEL SHADOW)
                 Graphics2D gt = (Graphics2D) g.create();
                 gt.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
                 gt.setFont(getFont());
-                gt.setColor(Color.WHITE);
+                FontMetrics fm = gt.getFontMetrics();
                 
-                int tw = gt.getFontMetrics().stringWidth(getText());
-                gt.drawString(getText(), (getWidth() - tw) / 2 - 3, getHeight() / 2 + 6);
+                int tx = (getWidth() - fm.stringWidth(getText())) / 2 - 3;
+                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                
+                // 3D Shadow Layers
+                gt.setColor(new Color(0, 100, 255)); // Blue
+                gt.drawString(getText(), tx + 4, ty + 4);
+                gt.setColor(new Color(255, 0, 0)); // Red
+                gt.drawString(getText(), tx + 2, ty + 2);
+                
+                gt.setColor(Color.WHITE);
+                gt.drawString(getText(), tx, ty);
                 gt.dispose();
             }
         };
