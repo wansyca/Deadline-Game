@@ -41,8 +41,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     // MAP GRID SYSTEM
     private static final int TILE_SIZE = 64;
-    private static final int MAP_COLS = 120;
-    private static final int MAP_ROWS = 90;
+    private static final int MAP_COLS = 80;
+    private static final int MAP_ROWS = 60;
     private static final int WORLD_WIDTH = MAP_COLS * TILE_SIZE;
     private static final int WORLD_HEIGHT = MAP_ROWS * TILE_SIZE;
 
@@ -261,144 +261,145 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         mapObject = new int[MAP_ROWS][MAP_COLS];
         obstacles = new ArrayList<>();
 
-        // 1. Fill base grass
         for (int r = 0; r < MAP_ROWS; r++) {
             for (int c = 0; c < MAP_COLS; c++) {
-                mapFloor[r][c] = random.nextInt(10) > 8 ? 1 : 0; // Grass or Grass Flower
+                mapFloor[r][c] = 0; 
             }
         }
-
-        // 2. Main Roads (Cross)
-        int roadH = MAP_ROWS / 2;
-        int roadV = MAP_COLS / 2;
+        
         for (int r = 0; r < MAP_ROWS; r++) {
-            for (int c = roadV - 3; c <= roadV + 3; c++) {
-                mapFloor[r][c] = (c == roadV) ? 4 : 3; // Asphalt + Mark
-            }
+            mapObject[r][0] = 1;
+            mapObject[r][MAP_COLS - 1] = 1;
         }
         for (int c = 0; c < MAP_COLS; c++) {
-            for (int r = roadH - 3; r <= roadH + 3; r++) {
-                mapFloor[r][c] = (r == roadH) ? 4 : 3;
-            }
+            mapObject[0][c] = 1;
+            mapObject[MAP_ROWS - 1][c] = 1;
         }
 
-        // 3. Paving Sidewalks
-        for (int r = 0; r < MAP_ROWS; r++) {
-            mapFloor[r][roadV - 4] = 2;
-            mapFloor[r][roadV + 4] = 2;
-        }
-        for (int c = 0; c < MAP_COLS; c++) {
-            mapFloor[roadH - 4][c] = 2;
-            mapFloor[roadH + 4][c] = 2;
-        }
+        int centerC = MAP_COLS / 2;
+        int centerR = MAP_ROWS / 2;
+        int gardenW = 16;
+        int gardenH = 12;
+        buildGarden(centerC - gardenW/2, centerR - gardenH/2, gardenW, gardenH);
 
-        // 4. PLAZA (Center Intersection)
-        for (int r = roadH - 6; r <= roadH + 6; r++) {
-            for (int c = roadV - 6; c <= roadV + 6; c++) {
-                mapFloor[r][c] = 2; // Paving
-            }
-        }
-        mapObject[roadH][roadV] = 4; // Fountain
+        buildRoom(2, 2, 18, 12, "KELAS");
+        buildRoom(22, 2, 18, 12, "KELAS");
 
-        // 5. ZONES OVERHAUL
+        buildRoom(MAP_COLS - 20, 2, 18, 14, "LAB");
 
-        // QUADRANT 1: TOP-LEFT (CAMPUS PARK)
-        // Varied grass already filled. Just add trees in clusters.
-        for (int i = 0; i < 30; i++) {
-            int r = random.nextInt(roadH - 10) + 2;
-            int c = random.nextInt(roadV - 10) + 2;
-            mapObject[r][c] = 2; // Tree
-        }
+        buildRoom(2, MAP_ROWS - 16, 20, 14, "KANTIN");
+        buildRoom(24, MAP_ROWS - 12, 10, 10, "TOILET");
 
-        // QUADRANT 2: TOP-RIGHT (LIBRARY COMPLEX)
-        buildLogicalBuilding(roadV + 10, 5, 40, 30, "LIBRARY");
+        buildRoom(MAP_COLS - 24, MAP_ROWS - 22, 22, 20, "PERPUS");
+        buildRoom(MAP_COLS - 20, 18, 18, 12, "DOSEN");
+        buildRoom(2, 16, 16, 10, "ADMIN");
 
-        // QUADRANT 3: BOTTOM-LEFT (FACULTY OF SCIENCE)
-        buildLogicalBuilding(5, roadH + 10, 45, 30, "FACULTY");
+        buildRoom(centerC - 10, MAP_ROWS - 14, 20, 12, "LOBBY");
 
-        // QUADRANT 4: BOTTOM-RIGHT (PARKING & SPORTS)
-        // Parking Lot (Right next to road)
-        for (int r = roadH + 8; r < roadH + 25; r++) {
-            for (int c = roadV + 8; c < roadV + 20; c++) {
-                mapFloor[r][c] = 3; // Asphalt
-                if ((c - roadV) % 3 == 0) {
-                    mapObject[r][c] = 5; // Parking Line (represented as object for now)
-                }
-            }
-        }
-        // Sports Field (Futsal/Basket)
-        for (int r = roadH + 8; r < roadH + 30; r++) {
-            for (int c = roadV + 30; c < roadV + 50; c++) {
-                mapFloor[r][c] = 0; // Green floor (Grass tile 0 is green)
-                // Boundaries
-                if (r == roadH + 8 || r == roadH + 29 || c == roadV + 30 || c == roadV + 49 || c == roadV + 40) {
-                    mapObject[r][c] = 5; // White Line
-                }
-            }
-        }
-
-        // 5. Border Walls
-        for (int r = 0; r < MAP_ROWS; r++) {
-            mapObject[r][0] = 2;
-            mapObject[r][MAP_COLS - 1] = 2; // Trees on border
-        }
-        for (int c = 0; c < MAP_COLS; c++) {
-            mapObject[0][c] = 2;
-            mapObject[MAP_ROWS - 1][c] = 2;
-        }
-
-        // 6. Random Trees in grass
-        for (int r = 0; r < MAP_ROWS; r++) {
-            for (int c = 0; c < MAP_COLS; c++) {
-                if (mapFloor[r][c] <= 1 && mapObject[r][c] == 0 && random.nextInt(10) > 7) {
-                    mapObject[r][c] = 2;
-                }
-            }
-        }
-
-        // Build Collision Data
         for (int r = 0; r < MAP_ROWS; r++) {
             for (int c = 0; c < MAP_COLS; c++) {
                 int obj = mapObject[r][c];
-                if (obj > 0) {
+                if (obj == 1 || obj == 2 || obj == 3 || obj >= 10) {
                     obstacles.add(new Rectangle(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE));
                 }
             }
         }
     }
 
-    private void buildLogicalBuilding(int startC, int startR, int width, int height, String type) {
-        int corridorR = startR + height / 2;
+    private void buildGarden(int startC, int startR, int width, int height) {
+        for (int r = startR; r < startR + height; r++) {
+            for (int c = startC; c < startC + width; c++) {
+                mapFloor[r][c] = (random.nextBoolean()) ? 2 : 3; 
+                if (r == startR || r == startR + height - 1 || c == startC || c == startC + width - 1) {
+                    if (c != startC + width / 2 && r != startR + height / 2) {
+                        mapObject[r][c] = 4; 
+                    }
+                } else {
+                    if (r == startR + height/2 && c == startC + width/2) {
+                        mapObject[r][c] = 3; 
+                        mapObject[r][c+1] = 3;
+                        mapObject[r+1][c] = 3;
+                        mapObject[r+1][c+1] = 3;
+                    } else if (mapObject[r][c] == 0 && random.nextInt(100) < 15) {
+                        mapObject[r][c] = 2; 
+                    }
+                }
+            }
+        }
+    }
+
+    private void buildRoom(int startC, int startR, int width, int height, String type) {
+        int doorC = startC + width / 2;
+        int doorR = startR + height - 1; 
+
+        if (type.equals("LOBBY")) {
+            doorR = startR; 
+        } else if (startR > MAP_ROWS / 2) {
+            doorR = startR; 
+        }
 
         for (int r = startR; r < startR + height; r++) {
             for (int c = startC; c < startC + width; c++) {
-                mapFloor[r][c] = 5; // Floor
-
-                // Outer Walls
-                if (r == startR || r == startR + height - 1 || c == startC || c == startC + width - 1) {
-                    // Main Entrance Gap
-                    if (!(r == startR + height - 1 && c > startC + width / 2 - 2 && c < startC + width / 2 + 2)) {
-                        mapObject[r][c] = 1; // Wall
-                    }
-                } else if (r == corridorR) {
-                    // Corridor is empty
+                if (type.equals("TOILET")) {
+                    mapFloor[r][c] = 4;
+                } else if (type.equals("LOBBY")) {
+                    mapFloor[r][c] = 5;
                 } else {
-                    // Room Walls (Logical Partitions)
-                    if (c % 10 == 0 && c != startC && c != startC + width - 1) {
-                        // Door gap in partitions
-                        if (r != corridorR - 1 && r != corridorR + 1) {
-                            mapObject[r][c] = 1;
-                        }
-                    }
+                    mapFloor[r][c] = 1; 
+                }
 
-                    // Furniture based on type
-                    if (type.equals("LIBRARY")) {
-                        if (c % 2 == 0 && r != corridorR) {
-                            mapObject[r][c] = 3; // Bookshelf (Desk tile)
-                        }
+                if (r == startR || r == startR + height - 1 || c == startC || c == startC + width - 1) {
+                    if (r == doorR && (c == doorC || c == doorC + 1)) {
+                        mapFloor[r][c] = 0; 
                     } else {
-                        if (r % 3 == 0 && c % 3 == 0 && random.nextBoolean()) {
-                            mapObject[r][c] = 3; // Desk
+                        mapObject[r][c] = 1; 
+                    }
+                } else {
+                    if (type.equals("KELAS")) {
+                        if (r >= startR + 2 && r < startR + height - 2 && c >= startC + 2 && c < startC + width - 2) {
+                            if (r % 3 == 0 && c % 3 == 0) {
+                                mapObject[r][c] = 10; 
+                                mapObject[r+1][c] = 11; 
+                            }
+                        }
+                    } else if (type.equals("LAB")) {
+                        if (r >= startR + 2 && r < startR + height - 2 && c >= startC + 2 && c < startC + width - 2) {
+                            if (r % 3 == 0 && c % 2 == 0) {
+                                mapObject[r][c] = 12; 
+                            }
+                        }
+                    } else if (type.equals("PERPUS")) {
+                        if (r >= startR + 2 && r < startR + height - 2 && c >= startC + 2 && c < startC + width - 2) {
+                            if (c % 4 == 0) {
+                                mapObject[r][c] = 13; 
+                                mapObject[r][c+1] = 13; 
+                            } else if (r % 4 == 0 && c % 4 == 2) {
+                                mapObject[r][c] = 10; 
+                            }
+                        }
+                    } else if (type.equals("KANTIN")) {
+                        if (r >= startR + 2 && r < startR + height - 2 && c >= startC + 2 && c < startC + width - 2) {
+                            if (r % 5 == 0 && c % 5 == 0) {
+                                mapObject[r][c] = 14; 
+                                mapObject[r][c+1] = 14;
+                                mapObject[r+1][c] = 11; 
+                                mapObject[r-1][c+1] = 11;
+                            }
+                        }
+                    } else if (type.equals("TOILET")) {
+                        if (r == startR + 1 && c >= startC + 1 && c < startC + width - 1) {
+                            if (c % 2 == 0) mapObject[r][c] = 15; 
+                        }
+                        if (r == startR + height - 2 && c >= startC + 1 && c < startC + width - 1) {
+                            if (c % 2 == 0 && c != doorC && c != doorC + 1) mapObject[r][c] = 15; 
+                        }
+                    } else if (type.equals("DOSEN") || type.equals("ADMIN")) {
+                        if (r >= startR + 2 && r < startR + height - 2 && c >= startC + 2 && c < startC + width - 2) {
+                            if (r % 4 == 0 && c % 4 == 0) {
+                                mapObject[r][c] = 10;
+                                mapObject[r][c+1] = 12; 
+                                mapObject[r+1][c] = 11; 
+                            }
                         }
                     }
                 }
@@ -461,14 +462,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             int r = random.nextInt(MAP_ROWS);
             int c = random.nextInt(MAP_COLS);
 
-            // Only spawn on logical "reward" zones: Floor (5) or Sports Field/Park (Grass
-            // 0/1)
-            // AND not on obstacles
-            if ((mapFloor[r][c] == 5 || mapFloor[r][c] <= 1) && mapObject[r][c] == 0) {
+            if ((mapFloor[r][c] == 1 || mapFloor[r][c] == 4 || mapFloor[r][c] == 5) && mapObject[r][c] == 0) {
                 a = new Assignment(c * TILE_SIZE + 16, r * TILE_SIZE + 16);
                 safeSpawn = true;
             } else {
-                a = null; // Dummy to keep loop going
+                a = null; 
             }
         } while (!safeSpawn || a == null);
         assignments.add(a);
@@ -629,25 +627,25 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 int tile = mapFloor[r][c];
                 int px = c * TILE_SIZE;
                 int py = r * TILE_SIZE;
-                switch (tile) {
-                    case 0:
-                        g2.drawImage(PixelAssets.imgGrass, px, py, null);
-                        break;
-                    case 1:
-                        g2.drawImage(PixelAssets.imgGrassFlower, px, py, null);
-                        break;
-                    case 2:
-                        g2.drawImage(PixelAssets.imgPaving, px, py, null);
-                        break;
-                    case 3:
-                        g2.drawImage(PixelAssets.imgRoad, px, py, null);
-                        break;
-                    case 4:
-                        g2.drawImage(PixelAssets.imgRoadMark, px, py, null);
-                        break;
-                    case 5:
-                        g2.drawImage(PixelAssets.imgFloor, px, py, null);
-                        break;
+                
+                if (tile == 0) { // Corridor
+                    g2.setColor(((r + c) % 2 == 0) ? new Color(200, 200, 200) : new Color(190, 190, 190));
+                    g2.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                } else if (tile == 1) { // Room
+                    g2.setColor(((r + c) % 2 == 0) ? new Color(245, 222, 179) : new Color(235, 212, 169)); // Cream
+                    g2.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                } else if (tile == 2) { // Garden Grass 1
+                    g2.setColor(new Color(60, 140, 60));
+                    g2.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                } else if (tile == 3) { // Garden Grass 2
+                    g2.setColor(new Color(50, 130, 50));
+                    g2.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                } else if (tile == 4) { // Toilet
+                    g2.setColor(((r + c) % 2 == 0) ? new Color(220, 240, 255) : new Color(200, 220, 235));
+                    g2.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                } else if (tile == 5) { // Lobby
+                    g2.setColor(((r + c) % 2 == 0) ? new Color(250, 250, 250) : new Color(220, 220, 220));
+                    g2.fillRect(px, py, TILE_SIZE, TILE_SIZE);
                 }
             }
         }
@@ -656,27 +654,78 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         for (int r = startRow; r < endRow; r++) {
             for (int c = startCol; c < endCol; c++) {
                 int obj = mapObject[r][c];
+                if (obj == 0) continue;
+                
                 int px = c * TILE_SIZE;
                 int py = r * TILE_SIZE;
-                switch (obj) {
-                    case 1: // Wall
-                        g2.setColor(new Color(140, 140, 150));
-                        g2.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-                        g2.setColor(new Color(100, 100, 110));
-                        g2.drawRect(px, py, TILE_SIZE, TILE_SIZE);
-                        break;
-                    case 2:
-                        g2.drawImage(PixelAssets.imgTree, px, py, null);
-                        break;
-                    case 3:
-                        g2.drawImage(PixelAssets.imgDesk, px, py, null);
-                        break;
-                    case 4:
-                        g2.drawImage(PixelAssets.imgFountain, px, py, null);
-                        break;
-                    case 5:
-                        g2.drawImage(PixelAssets.imgWhiteLine, px, py, null);
-                        break;
+
+                // Drop shadow
+                g2.setColor(new Color(0, 0, 0, 50));
+                g2.fillRect(px + 4, py + 8, TILE_SIZE, TILE_SIZE);
+
+                if (obj == 1) { // Wall
+                    g2.setColor(new Color(68, 68, 68)); // #444
+                    g2.fillRect(px, py, TILE_SIZE, TILE_SIZE - 4);
+                    // Depth effect
+                    g2.setColor(new Color(40, 40, 40));
+                    g2.fillRect(px, py + TILE_SIZE - 4, TILE_SIZE, 4);
+                    g2.setColor(new Color(20, 20, 20));
+                    g2.drawRect(px, py, TILE_SIZE, TILE_SIZE);
+                } else if (obj == 2) { // Tree
+                    // Trunk
+                    g2.setColor(new Color(101, 67, 33));
+                    g2.fillRect(px + 24, py + 32, 16, 32);
+                    // Leaves
+                    g2.setColor(new Color(34, 139, 34));
+                    g2.fillRect(px + 8, py, 48, 48);
+                    g2.setColor(new Color(0, 100, 0));
+                    g2.drawRect(px + 8, py, 48, 48);
+                } else if (obj == 3) { // Fountain part
+                    g2.setColor(new Color(150, 150, 150));
+                    g2.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                    g2.setColor(new Color(0, 150, 255));
+                    g2.fillOval(px + 8, py + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+                } else if (obj == 4) { // Plant Border
+                    g2.setColor(new Color(40, 100, 40));
+                    g2.fillRect(px, py + 16, TILE_SIZE, TILE_SIZE - 16);
+                } else if (obj == 10) { // Desk
+                    g2.setColor(new Color(139, 69, 19));
+                    g2.fillRect(px + 4, py + 16, TILE_SIZE - 8, TILE_SIZE - 32);
+                    g2.setColor(new Color(50, 20, 10));
+                    g2.drawRect(px + 4, py + 16, TILE_SIZE - 8, TILE_SIZE - 32);
+                } else if (obj == 11) { // Chair
+                    g2.setColor(new Color(100, 50, 20));
+                    g2.fillRect(px + 16, py + 8, 32, 32);
+                } else if (obj == 12) { // PC Monitor
+                    g2.setColor(new Color(139, 69, 19));
+                    g2.fillRect(px + 4, py + 16, TILE_SIZE - 8, TILE_SIZE - 32);
+                    g2.setColor(Color.DARK_GRAY);
+                    g2.fillRect(px + 16, py + 8, 32, 16);
+                    g2.setColor(Color.CYAN);
+                    g2.fillRect(px + 18, py + 10, 28, 12);
+                } else if (obj == 13) { // Bookshelf
+                    g2.setColor(new Color(80, 40, 10));
+                    g2.fillRect(px + 4, py, TILE_SIZE - 8, TILE_SIZE);
+                    g2.setColor(Color.RED);
+                    g2.fillRect(px + 10, py + 10, 10, 20);
+                    g2.setColor(Color.BLUE);
+                    g2.fillRect(px + 25, py + 10, 10, 20);
+                    g2.setColor(Color.YELLOW);
+                    g2.fillRect(px + 40, py + 10, 10, 20);
+                    g2.setColor(Color.BLACK);
+                    g2.drawRect(px + 4, py, TILE_SIZE - 8, TILE_SIZE);
+                } else if (obj == 14) { // Big Table
+                    g2.setColor(new Color(200, 180, 150));
+                    g2.fillRect(px, py + 8, TILE_SIZE, TILE_SIZE - 16);
+                    g2.setColor(new Color(100, 80, 50));
+                    g2.drawRect(px, py + 8, TILE_SIZE, TILE_SIZE - 16);
+                } else if (obj == 15) { // Toilet Cubicle / Sink
+                    g2.setColor(Color.WHITE);
+                    g2.fillRect(px + 8, py + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+                    g2.setColor(Color.LIGHT_GRAY);
+                    g2.drawRect(px + 8, py + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+                    g2.setColor(Color.CYAN);
+                    g2.fillRect(px + 16, py + 16, TILE_SIZE - 32, TILE_SIZE - 32);
                 }
             }
         }

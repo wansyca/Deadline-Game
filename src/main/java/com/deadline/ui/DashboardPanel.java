@@ -3,10 +3,13 @@ package com.deadline.ui;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.RenderingHints;
 
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -20,39 +23,95 @@ public class DashboardPanel extends JPanel {
     private JLabel title;
     private JLabel subtitle;
     private JButton start, leaderboard, exit;
+    private Image bgImage;
 
     public DashboardPanel() {
         setLayout(null);
-        setBackground(new Color(20, 20, 30)); // Dark pixel background
 
-        // HEADER (23.59)
-        title = new JLabel("23.59", SwingConstants.CENTER);
-        title.setFont(new Font("Monospaced", Font.BOLD, 80));
-        title.setForeground(new Color(255, 50, 50));
+        // LOAD BACKGROUND
+        try {
+            java.net.URL bgUrl = getClass().getResource("/assets/bg.png");
+            if (bgUrl != null) {
+                bgImage = new ImageIcon(bgUrl).getImage();
+            } else {
+                System.err.println("❌ Dashboard Background not found!");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // TIMER (23:59) - RED WITH GLOW
+        title = new JLabel("23:59", SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int tx = (getWidth() - fm.stringWidth(getText())) / 2;
+                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                
+                // Subtle Glow
+                g2.setColor(new Color(255, 0, 0, 60));
+                g2.drawString(getText(), tx + 4, ty + 4);
+                g2.drawString(getText(), tx - 4, ty - 4);
+                
+                // Main Red Text
+                g2.setColor(new Color(255, 0, 0)); 
+                g2.drawString(getText(), tx, ty);
+                g2.dispose();
+            }
+        };
+        title.setFont(new Font("Monospaced", Font.BOLD, 120));
         add(title);
 
-        // SUBTITLE (SUBMIT OR DIE)
-        subtitle = new JLabel("SUBMIT OR DIE", SwingConstants.CENTER);
-        subtitle.setFont(new Font("Monospaced", Font.BOLD, 32));
-        subtitle.setForeground(new Color(255, 200, 50));
+        // TITLE (SUBMIT OR DIE) - 3D PIXEL STYLE
+        subtitle = new JLabel("SUBMIT OR DIE", SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                
+                String text = getText();
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int tx = (getWidth() - fm.stringWidth(text)) / 2;
+                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                
+                // Layer 2: Blue Shadow
+                g2.setColor(new Color(0, 80, 255));
+                g2.drawString(text, tx + 4, ty + 4);
+                
+                // Layer 1: Red Shadow
+                g2.setColor(new Color(255, 0, 0));
+                g2.drawString(text, tx + 2, ty + 2);
+                
+                // Main White
+                g2.setColor(Color.WHITE);
+                g2.drawString(text, tx, ty);
+                g2.dispose();
+            }
+        };
+        subtitle.setFont(new Font("Monospaced", Font.BOLD, 45));
         add(subtitle);
 
-        // BUTTONS
-        start = createButton("START GAME", new Color(40, 150, 40));
+        // BUTTONS - RETRO COLORED STYLE
+        start = createButton("START GAME", new Color(34, 139, 34)); // Forest Green
         start.addActionListener(e -> {
             SoundManager.playClickSound();
             Main.switchPage(Main.INPUT_PLAYER);
         });
         add(start);
 
-        leaderboard = createButton("LEADERBOARD", new Color(150, 100, 40));
+        leaderboard = createButton("LEADERBOARD", new Color(218, 165, 32)); // Goldenrod
         leaderboard.addActionListener(e -> {
             SoundManager.playClickSound();
             Main.goToLeaderboardWithLoading();
         });
         add(leaderboard);
 
-        exit = createButton("EXIT", new Color(150, 40, 40));
+        exit = createButton("EXIT", new Color(178, 34, 34)); // Firebrick Red
         exit.addActionListener(e -> {
             SoundManager.playClickSound();
             System.exit(0);
@@ -104,18 +163,40 @@ public class DashboardPanel extends JPanel {
                     current = baseColor.brighter();
                 }
 
-                // Pixel button style: Shadow below, main block, bright border top/left
-                g2.setColor(current.darker());
-                g2.fillRect(4, 4, getWidth() - 4, getHeight() - 4);
+                // 1. THICK PIXEL SHADOW (Deep black)
+                g2.setColor(Color.BLACK);
+                g2.fillRect(6, 6, getWidth() - 6, getHeight() - 6);
 
+                // 2. MAIN BODY
                 g2.setColor(current);
-                g2.fillRect(0, 0, getWidth() - 4, getHeight() - 4);
+                g2.fillRect(0, 0, getWidth() - 6, getHeight() - 6);
 
-                g2.setColor(Color.WHITE);
-                g2.drawRect(0, 0, getWidth() - 5, getHeight() - 5);
+                // 3. PIXEL BORDER (Double line)
+                g2.setColor(Color.BLACK);
+                g2.drawRect(0, 0, getWidth() - 7, getHeight() - 7);
+                g2.setColor(new Color(255, 255, 255, 100)); // Inner highlight border
+                g2.drawRect(2, 2, getWidth() - 11, getHeight() - 11);
 
                 g2.dispose();
-                super.paintComponent(g);
+                
+                // TEXT DRAWING (3D PIXEL SHADOW)
+                Graphics2D gt = (Graphics2D) g.create();
+                gt.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
+                gt.setFont(getFont());
+                FontMetrics fm = gt.getFontMetrics();
+                
+                int tx = (getWidth() - fm.stringWidth(getText())) / 2 - 3;
+                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                
+                // 3D Shadow Layers
+                gt.setColor(new Color(0, 100, 255)); // Blue
+                gt.drawString(getText(), tx + 4, ty + 4);
+                gt.setColor(new Color(255, 0, 0)); // Red
+                gt.drawString(getText(), tx + 2, ty + 2);
+                
+                gt.setColor(Color.WHITE);
+                gt.drawString(getText(), tx, ty);
+                gt.dispose();
             }
         };
 
@@ -132,19 +213,31 @@ public class DashboardPanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-
         Graphics2D g2 = (Graphics2D) g;
-        // Background pattern for pixel feel
-        g2.setColor(new Color(30, 30, 40));
+
+        // PIXEL STYLE RENDERING
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+
+        // RENDER BACKGROUND FULL (PAS KARENA RESOLUSI TETAP)
+        if (bgImage != null) {
+            g2.drawImage(bgImage, 0, 0, getWidth(), getHeight(), null);
+        } else {
+            g2.setColor(new Color(20, 20, 30));
+            g2.fillRect(0, 0, getWidth(), getHeight());
+        }
+
+        // 2. DARK OVERLAY & VIGNETTE
+        g2.setColor(new Color(0, 0, 0, 140)); // Base Overlay
         g2.fillRect(0, 0, getWidth(), getHeight());
 
-        g2.setColor(new Color(25, 25, 35));
-        for (int i = 0; i < getWidth(); i += 32) {
-            for (int j = 0; j < getHeight(); j += 32) {
-                if ((i + j) % 64 == 0) {
-                    g2.fillRect(i, j, 32, 32);
-                }
-            }
-        }
+        // RADIAL VIGNETTE (Manual with gradient)
+        int w = getWidth();
+        int h = getHeight();
+        float[] dist = { 0.0f, 1.0f };
+        Color[] colors = { new Color(0, 0, 0, 0), new Color(0, 0, 0, 230) };
+        java.awt.RadialGradientPaint p = new java.awt.RadialGradientPaint(
+            new java.awt.geom.Point2D.Double(w/2, h/2), w, dist, colors);
+        g2.setPaint(p);
+        g2.fillRect(0, 0, w, h);
     }
 }
