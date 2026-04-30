@@ -2,7 +2,6 @@ package com.deadline.ui;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -18,7 +17,6 @@ import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -33,8 +31,8 @@ public class InputPlayerPanel extends JPanel {
     private JTextField nameField;
     private String selectedAvatar = null;
 
-    private JButton playBtn;
-    private JButton backBtn;
+    private ImageButton playBtn;
+    private ImageButton backBtn;
 
     private JLabel title;
     private JLabel nameLabel;
@@ -43,22 +41,17 @@ public class InputPlayerPanel extends JPanel {
     private List<AvatarButton> avatarButtons = new ArrayList<>();
     private Image bgImage;
 
+    private static final int BTN_WIDTH = 180;
+    private static final int BTN_HEIGHT = 55;
+    private static final int AVATAR_SIZE = 150;
+
     public InputPlayerPanel() {
         setLayout(null);
 
-        // LOAD BACKGROUND
-        try {
-            java.net.URL bgUrl = getClass().getResource("/assets/bg.png");
-            if (bgUrl != null) {
-                bgImage = new ImageIcon(bgUrl).getImage();
-            } else {
-                System.err.println("❌ InputPlayer Background not found!");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // LOAD ASSET
+        bgImage = loadImage("/assets/bg.png");
 
-        // TITLE - 3D PIXEL STYLE
+        // TITLE - PLAYER REGISTRATION
         title = new JLabel("PLAYER REGISTRATION", SwingConstants.CENTER) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -81,11 +74,11 @@ public class InputPlayerPanel extends JPanel {
                 g2.dispose();
             }
         };
-        title.setFont(new Font("Monospaced", Font.BOLD, 40));
+        title.setFont(new Font("Monospaced", Font.BOLD, 42));
         add(title);
 
-        // NAME - PIXEL STYLE
-        nameLabel = new JLabel("Nama Mahasiswa:") {
+        // NAME LABEL
+        nameLabel = new JLabel("Student Name:") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -112,8 +105,8 @@ public class InputPlayerPanel extends JPanel {
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)));
         add(nameField);
 
-        // AVATAR LABEL - PIXEL STYLE
-        avatarLabel = new JLabel("PILIH KARAKTER:") {
+        // CHARACTER LABEL
+        avatarLabel = new JLabel("SELECT CHARACTER:") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -133,40 +126,50 @@ public class InputPlayerPanel extends JPanel {
         // AVATAR
         setupAvatarButtons();
 
-        // BUTTON LANJUTKAN
-        playBtn = createMainButton("L A N J U T K A N", new Color(40, 150, 40));
+        // BUTTON BACK
+        backBtn = new ImageButton(
+            "/assets/buttons/btn_back_normal.png",
+            "/assets/buttons/btn_back_hover.png",
+            "/assets/buttons/btn_back_pressed.png",
+            BTN_WIDTH, BTN_HEIGHT
+        );
+        backBtn.addActionListener(e -> {
+            SoundManager.playClickSound();
+            Main.switchPage(Main.DASHBOARD);
+        });
+        add(backBtn);
+
+        // BUTTON NEXT
+        playBtn = new ImageButton(
+            "/assets/buttons/btn_next_normal.png",
+            "/assets/buttons/btn_next_hover.png",
+            "/assets/buttons/btn_next_pressed.png",
+            BTN_WIDTH, BTN_HEIGHT
+        );
         playBtn.addActionListener(e -> {
             SoundManager.playClickSound();
 
             String name = nameField.getText().trim();
             if (name.isEmpty()) {
-                CustomAlert.showWarning(this, "Input Kosong", "Nama tidak boleh kosong!");
+                CustomAlert.showWarning(this, "Empty Input", "Name cannot be empty!");
                 return;
             }
 
             if (selectedAvatar == null) {
-                CustomAlert.showWarning(this, "Avatar Belum Pilih", "Pilih karakter terlebih dahulu!");
+                CustomAlert.showWarning(this, "No Avatar Selected", "Please select a character first!");
                 return;
             }
 
             com.deadline.backend.ScoreService scoreService = new com.deadline.backend.ScoreService();
             if (scoreService.isUsernameInLeaderboard(name)) {
-                CustomAlert.showError(this, "Username Terpakai",
-                        "Username '" + name + "' sudah ada di leaderboard.\nSilakan pilih nama lain!");
+                CustomAlert.showError(this, "Username Taken",
+                        "Username '" + name + "' already exists.\nPlease choose another name!");
                 return;
             }
 
             Main.goToGameWithLoading(-1, name, selectedAvatar);
         });
         add(playBtn);
-
-        // BUTTON BACK
-        backBtn = createMainButton("K E M B A L I", new Color(150, 40, 40));
-        backBtn.addActionListener(e -> {
-            SoundManager.playClickSound();
-            Main.switchPage(Main.DASHBOARD);
-        });
-        add(backBtn);
 
         addComponentListener(new ComponentAdapter() {
             @Override
@@ -176,6 +179,18 @@ public class InputPlayerPanel extends JPanel {
         });
 
         SwingUtilities.invokeLater(this::updateLayout);
+    }
+
+    private Image loadImage(String path) {
+        try {
+            java.net.URL url = getClass().getResource(path);
+            if (url != null) {
+                return new ImageIcon(url).getImage();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private void setupAvatarButtons() {
@@ -201,102 +216,51 @@ public class InputPlayerPanel extends JPanel {
     private void updateLayout() {
         int centerX = getWidth() / 2;
 
-        title.setBounds(centerX - 250, 50, 500, 50);
+        // TITLE
+        title.setBounds(centerX - 300, 80, 600, 50); // Moved down from 40 to 80
+        
+        // NAME INPUT
+        int nameLabelY = 180; // Moved down from 130 to 180
+        nameLabel.setBounds(centerX - 150, nameLabelY, 300, 25);
+        nameField.setBounds(centerX - 150, nameLabelY + 30, 300, 50);
 
-        nameLabel.setBounds(centerX - 150, 130, 300, 25);
-        nameField.setBounds(centerX - 150, 160, 300, 50);
+        // AVATAR SELECTION
+        int avatarLabelY = nameLabelY + 100;
+        avatarLabel.setBounds(centerX - 150, avatarLabelY, 300, 25);
 
-        avatarLabel.setBounds(centerX - 150, 230, 300, 25);
-
-        // 🔥 ADJUST AVATAR SIZE (96-128 range, using 128)
-        int size = 128;
-        int gap = 50;
-
-        int totalWidth = (avatarButtons.size() * size) + ((avatarButtons.size() - 1) * gap);
-        int startX = centerX - (totalWidth / 2);
+        int avatarGap = 60;
+        int totalAvatarW = (avatarButtons.size() * AVATAR_SIZE) + ((avatarButtons.size() - 1) * avatarGap);
+        int avatarX = centerX - (totalAvatarW / 2);
 
         for (int i = 0; i < avatarButtons.size(); i++) {
-            avatarButtons.get(i).setBounds(startX + (i * (size + gap)), 260, size, size);
+            avatarButtons.get(i).setBounds(avatarX + (i * (AVATAR_SIZE + avatarGap)), avatarLabelY + 40, AVATAR_SIZE, AVATAR_SIZE);
         }
 
-        playBtn.setBounds(centerX - 110, 470, 220, 50);
-        backBtn.setBounds(centerX - 110, 540, 220, 50);
-    }
+        // BUTTONS (BACK | NEXT) - 35px gap from avatar area
+        int btnY = avatarLabelY + 40 + AVATAR_SIZE + 35; 
+        int btnGap = 40;
+        int totalBtnW = (BTN_WIDTH * 2) + btnGap;
+        int btnStartX = centerX - (totalBtnW / 2);
 
-    private JButton createMainButton(String text, Color baseColor) {
-        JButton btn = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-
-                Color current = baseColor;
-                if (getModel().isPressed()) {
-                    current = baseColor.darker().darker();
-                } else if (getModel().isRollover()) {
-                    current = baseColor.brighter();
-                }
-
-                g2.setColor(current.darker());
-                g2.fillRect(4, 4, getWidth() - 4, getHeight() - 4);
-
-                g2.setColor(current);
-                g2.fillRect(0, 0, getWidth() - 4, getHeight() - 4);
-
-                g2.setColor(new Color(200, 200, 200));
-                g2.drawRect(0, 0, getWidth() - 5, getHeight() - 5);
-
-                g2.dispose();
-                
-                // TEXT DRAWING (3D PIXEL SHADOW)
-                Graphics2D gt = (Graphics2D) g.create();
-                gt.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
-                gt.setFont(getFont());
-                FontMetrics fm = gt.getFontMetrics();
-                
-                int tx = (getWidth() - fm.stringWidth(getText())) / 2 - 3;
-                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
-                
-                // 3D Shadow Layers
-                gt.setColor(new Color(0, 100, 255)); // Blue
-                gt.drawString(getText(), tx + 4, ty + 4);
-                gt.setColor(new Color(255, 0, 0)); // Red
-                gt.drawString(getText(), tx + 2, ty + 2);
-                
-                gt.setColor(Color.WHITE);
-                gt.drawString(getText(), tx, ty);
-                gt.dispose();
-            }
-        };
-
-        btn.setFocusPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Monospaced", Font.BOLD, 22));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        return btn;
+        backBtn.setBounds(btnStartX, btnY, BTN_WIDTH, BTN_HEIGHT);
+        playBtn.setBounds(btnStartX + BTN_WIDTH + btnGap, btnY, BTN_WIDTH, BTN_HEIGHT);
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D) g;
+        Graphics2D g2 = (Graphics2D) g.create();
 
-        // PIXEL STYLE RENDERING
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
-        // RENDER BACKGROUND FULL (PAS KARENA RESOLUSI TETAP)
         if (bgImage != null) {
             g2.drawImage(bgImage, 0, 0, getWidth(), getHeight(), null);
-        } else {
-            g2.setColor(new Color(20, 20, 30));
-            g2.fillRect(0, 0, getWidth(), getHeight());
         }
 
-        // DARK OVERLAY (rgba(0, 0, 0, 0.6))
-        g2.setColor(new Color(0, 0, 0, 153));
+        g2.setColor(new Color(0, 0, 0, 180));
         g2.fillRect(0, 0, getWidth(), getHeight());
+
+        g2.dispose();
     }
 
     private class AvatarButton extends JPanel {
@@ -310,19 +274,15 @@ public class InputPlayerPanel extends JPanel {
 
             try {
                 java.net.URL url = getClass().getResource(path);
-
-                if (url == null) {
-                    System.err.println("❌ Gagal load: " + path);
-                } else {
+                if (url != null) {
                     img = new ImageIcon(url).getImage();
-                    System.out.println("✅ Berhasil load: " + path);
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
-            setCursor(new Cursor(Cursor.HAND_CURSOR));
+            setOpaque(false);
+            setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
 
             addMouseListener(new MouseAdapter() {
                 @Override
@@ -349,22 +309,23 @@ public class InputPlayerPanel extends JPanel {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
 
-            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
             if (img != null) {
                 g2.drawImage(img, 0, 0, getWidth(), getHeight(), null);
             }
 
             if (isSelected) {
-                g2.setColor(new Color(0, 255, 100));
+                g2.setColor(new Color(255, 0, 0));
                 g2.setStroke(new BasicStroke(4));
-                g2.drawRect(2, 2, getWidth() - 4, getHeight() - 4);
             } else if (isHovered) {
-                g2.setColor(new Color(255, 255, 255, 120));
+                g2.setColor(Color.WHITE);
                 g2.setStroke(new BasicStroke(2));
-                g2.drawRect(2, 2, getWidth() - 4, getHeight() - 4);
+            } else {
+                g2.setColor(new Color(200, 200, 200, 150));
+                g2.setStroke(new BasicStroke(1));
             }
+            g2.drawRect(2, 2, getWidth() - 4, getHeight() - 4);
 
             g2.dispose();
         }

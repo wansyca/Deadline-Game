@@ -1,19 +1,11 @@
-import javax.swing.ImageIcon;
-import java.awt.Image;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.io.File;
 
 public class CheckImage {
-    public static void main(String[] args) {
-        try {
-            File file = new File("src/main/resources/assets/background.png");
-            if (!file.exists()) {
-                System.out.println("File not found");
-                return;
-            }
-            ImageIcon icon = new ImageIcon(file.getAbsolutePath());
-            System.out.println("Dimensions: " + icon.getIconWidth() + "x" + icon.getIconHeight());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public static void main(String[] args) throws Exception {
+        BufferedImage img = ImageIO.read(new File("src/main/resources/assets/buttons/btn_start_normal.png"));
+        System.out.println("Width: " + img.getWidth());
+        System.out.println("Height: " + img.getHeight());
     }
 }

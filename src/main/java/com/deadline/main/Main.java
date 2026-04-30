@@ -75,27 +75,25 @@ public class Main {
     }
 
     public static void goToLeaderboardWithLoading() {
+        setLoadingTarget(LEADERBOARD);
         switchPage(LOADING);
-
-        Timer timer = new Timer(3000, e -> {
-            switchPage(LEADERBOARD);
-        });
-        timer.setRepeats(false);
-        timer.start();
     }
 
     public static void goToGameWithLoading(int playerId, String playerName, String avatarPath) {
-        SoundManager.stopBackgroundMusicWithFade(); // Hentikan musik saat masuk game
+        SoundManager.stopBackgroundMusicWithFade(); 
         if (gamePanel != null) {
             gamePanel.resetGame(playerId, playerName, avatarPath);
         }
-
+        setLoadingTarget(GAME);
         switchPage(LOADING);
+    }
 
-        Timer timer = new Timer(3000, e -> {
-            switchPage(GAME);
-        });
-        timer.setRepeats(false);
-        timer.start();
+    private static void setLoadingTarget(String target) {
+        for (Component comp : mainPanel.getComponents()) {
+            if (comp instanceof LoadingPage) {
+                ((LoadingPage) comp).setTargetPage(target);
+                break;
+            }
+        }
     }
 }

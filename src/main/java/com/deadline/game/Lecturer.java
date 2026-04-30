@@ -9,20 +9,19 @@ import com.deadline.ui.PixelAssets;
 
 public class Lecturer extends GameObject {
 
+    private int type;
     private double speed;
     private double exactX, exactY;
     private int animTick = 0;
     private boolean facingRight = true;
-    private int type; // 0 = Tua, 1 = Muda, 2 = Cewe (used for color variations if needed, or just
-                      // behavior)
 
     public Lecturer(int x, int y, double speed, int type) {
         // Pixel grid size: 64x64
         super(x, y, 64, 64);
         this.speed = speed;
+        this.type = type;
         this.exactX = x;
         this.exactY = y;
-        this.type = type;
     }
 
     public void setSpeed(double speed) {

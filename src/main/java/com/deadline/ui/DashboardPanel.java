@@ -1,243 +1,145 @@
 package com.deadline.ui;
 
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
 
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.SwingConstants;
 
 import com.deadline.audio.SoundManager;
 import com.deadline.main.Main;
 
 public class DashboardPanel extends JPanel {
 
-    private JLabel title;
-    private JLabel subtitle;
-    private JButton start, leaderboard, exit;
     private Image bgImage;
+    private Image titleImage;
+    private Image taglineImage;
+    private ImageButton start, leaderboard, exit;
+    
+    private static final float TITLE_SCALE = 0.75f;
+    private static final float TAGLINE_SCALE = 0.25f;
+    
+    private static final int BTN_WIDTH = 250;
+    private static final int BTN_HEIGHT = 80;
 
     public DashboardPanel() {
         setLayout(null);
 
-        // LOAD BACKGROUND
-        try {
-            java.net.URL bgUrl = getClass().getResource("/assets/bg.png");
-            if (bgUrl != null) {
-                bgImage = new ImageIcon(bgUrl).getImage();
-            } else {
-                System.err.println("❌ Dashboard Background not found!");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // LOAD ASSETS
+        bgImage = loadImage("/assets/bg.png");
+        titleImage = loadImage("/assets/judul.png");
+        taglineImage = loadImage("/assets/tagline.png");
 
-        // TIMER (23:59) - RED WITH GLOW
-        title = new JLabel("23:59", SwingConstants.CENTER) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
-                
-                g2.setFont(getFont());
-                FontMetrics fm = g2.getFontMetrics();
-                int tx = (getWidth() - fm.stringWidth(getText())) / 2;
-                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
-                
-                // Subtle Glow
-                g2.setColor(new Color(255, 0, 0, 60));
-                g2.drawString(getText(), tx + 4, ty + 4);
-                g2.drawString(getText(), tx - 4, ty - 4);
-                
-                // Main Red Text
-                g2.setColor(new Color(255, 0, 0)); 
-                g2.drawString(getText(), tx, ty);
-                g2.dispose();
-            }
-        };
-        title.setFont(new Font("Monospaced", Font.BOLD, 120));
-        add(title);
-
-        // TITLE (SUBMIT OR DIE) - 3D PIXEL STYLE
-        subtitle = new JLabel("SUBMIT OR DIE", SwingConstants.CENTER) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
-                
-                String text = getText();
-                g2.setFont(getFont());
-                FontMetrics fm = g2.getFontMetrics();
-                int tx = (getWidth() - fm.stringWidth(text)) / 2;
-                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
-                
-                // Layer 2: Blue Shadow
-                g2.setColor(new Color(0, 80, 255));
-                g2.drawString(text, tx + 4, ty + 4);
-                
-                // Layer 1: Red Shadow
-                g2.setColor(new Color(255, 0, 0));
-                g2.drawString(text, tx + 2, ty + 2);
-                
-                // Main White
-                g2.setColor(Color.WHITE);
-                g2.drawString(text, tx, ty);
-                g2.dispose();
-            }
-        };
-        subtitle.setFont(new Font("Monospaced", Font.BOLD, 45));
-        add(subtitle);
-
-        // BUTTONS - RETRO COLORED STYLE
-        start = createButton("START GAME", new Color(34, 139, 34)); // Forest Green
+        // BUTTONS (Main Menu size: 250x80)
+        start = new ImageButton(
+            "/assets/buttons/btn_start_normal.png",
+            "/assets/buttons/btn_start_hover.png",
+            "/assets/buttons/btn_start_pressed.png",
+            BTN_WIDTH, BTN_HEIGHT
+        );
         start.addActionListener(e -> {
             SoundManager.playClickSound();
             Main.switchPage(Main.INPUT_PLAYER);
         });
         add(start);
 
-        leaderboard = createButton("LEADERBOARD", new Color(218, 165, 32)); // Goldenrod
+        leaderboard = new ImageButton(
+            "/assets/buttons/btn_laeder_normal.png",
+            "/assets/buttons/btn_laeder_hover.png",
+            "/assets/buttons/btn_laeder_pressed.png",
+            BTN_WIDTH, BTN_HEIGHT
+        );
         leaderboard.addActionListener(e -> {
             SoundManager.playClickSound();
             Main.goToLeaderboardWithLoading();
         });
         add(leaderboard);
 
-        exit = createButton("EXIT", new Color(178, 34, 34)); // Firebrick Red
+        exit = new ImageButton(
+            "/assets/buttons/btn_exit_normal.png",
+            "/assets/buttons/btn_exit_hover.png",
+            "/assets/buttons/btn_exit_pressed.png",
+            BTN_WIDTH, BTN_HEIGHT
+        );
         exit.addActionListener(e -> {
             SoundManager.playClickSound();
             System.exit(0);
         });
         add(exit);
 
-        // RESPONSIVE
+        // RESPONSIVE LAYOUT
         addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
             public void componentResized(java.awt.event.ComponentEvent evt) {
                 layoutComponents();
             }
         });
     }
 
-    private void layoutComponents() {
-        int centerX = getWidth() / 2;
-        int centerY = getHeight() / 2;
-
-        // ===== TITLE & SUBTITLE =====
-        int titleY = 80;
-        int titleHeight = 80;
-        int subtitleHeight = 40;
-        int spacing = 25;
-
-        title.setBounds(centerX - 200, titleY, 400, titleHeight);
-        subtitle.setBounds(centerX - 200, titleY + titleHeight + spacing, 400, subtitleHeight);
-
-        // ===== BUTTONS =====
-        int startY = centerY - 20;
-
-        start.setBounds(centerX - 130, startY, 260, 60);
-        leaderboard.setBounds(centerX - 130, startY + 80, 260, 60);
-        exit.setBounds(centerX - 130, startY + 160, 260, 60);
+    private Image loadImage(String path) {
+        try {
+            java.net.URL url = getClass().getResource(path);
+            if (url != null) {
+                return new ImageIcon(url).getImage();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    private JButton createButton(String text, Color baseColor) {
-        JButton btn = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
+    private void layoutComponents() {
+        int centerX = getWidth() / 2;
 
-                // NO AA for pixel look
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+        // ===== POSITIONS =====
+        int titleY = 80;
+        
+        int tw = (int)(titleImage.getWidth(null) * TITLE_SCALE);
+        int th = (int)(titleImage.getHeight(null) * TITLE_SCALE);
+        
+        int taglineY = titleY + th - 22; // Even closer
+        int tgw = (int)(taglineImage.getWidth(null) * TAGLINE_SCALE);
+        int tgh = (int)(taglineImage.getHeight(null) * TAGLINE_SCALE);
 
-                Color current = baseColor;
-                if (getModel().isPressed()) {
-                    current = baseColor.darker().darker();
-                } else if (getModel().isRollover()) {
-                    current = baseColor.brighter();
-                }
+        // ===== BUTTONS (VERTICAL STACK) =====
+        int buttonY = taglineY + tgh + 60; // Increased gap to move buttons lower
+        int spacing = 12;
 
-                // 1. THICK PIXEL SHADOW (Deep black)
-                g2.setColor(Color.BLACK);
-                g2.fillRect(6, 6, getWidth() - 6, getHeight() - 6);
-
-                // 2. MAIN BODY
-                g2.setColor(current);
-                g2.fillRect(0, 0, getWidth() - 6, getHeight() - 6);
-
-                // 3. PIXEL BORDER (Double line)
-                g2.setColor(Color.BLACK);
-                g2.drawRect(0, 0, getWidth() - 7, getHeight() - 7);
-                g2.setColor(new Color(255, 255, 255, 100)); // Inner highlight border
-                g2.drawRect(2, 2, getWidth() - 11, getHeight() - 11);
-
-                g2.dispose();
-                
-                // TEXT DRAWING (3D PIXEL SHADOW)
-                Graphics2D gt = (Graphics2D) g.create();
-                gt.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
-                gt.setFont(getFont());
-                FontMetrics fm = gt.getFontMetrics();
-                
-                int tx = (getWidth() - fm.stringWidth(getText())) / 2 - 3;
-                int ty = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
-                
-                // 3D Shadow Layers
-                gt.setColor(new Color(0, 100, 255)); // Blue
-                gt.drawString(getText(), tx + 4, ty + 4);
-                gt.setColor(new Color(255, 0, 0)); // Red
-                gt.drawString(getText(), tx + 2, ty + 2);
-                
-                gt.setColor(Color.WHITE);
-                gt.drawString(getText(), tx, ty);
-                gt.dispose();
-            }
-        };
-
-        btn.setFocusPainted(false);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Monospaced", Font.BOLD, 22));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        return btn;
+        start.setBounds(centerX - (BTN_WIDTH / 2), buttonY, BTN_WIDTH, BTN_HEIGHT);
+        leaderboard.setBounds(centerX - (BTN_WIDTH / 2), buttonY + BTN_HEIGHT + spacing, BTN_WIDTH, BTN_HEIGHT);
+        exit.setBounds(centerX - (BTN_WIDTH / 2), buttonY + (BTN_HEIGHT + spacing) * 2, BTN_WIDTH, BTN_HEIGHT);
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D) g;
+        Graphics2D g2 = (Graphics2D) g.create();
 
-        // PIXEL STYLE RENDERING
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
 
-        // RENDER BACKGROUND FULL (PAS KARENA RESOLUSI TETAP)
         if (bgImage != null) {
             g2.drawImage(bgImage, 0, 0, getWidth(), getHeight(), null);
-        } else {
-            g2.setColor(new Color(20, 20, 30));
-            g2.fillRect(0, 0, getWidth(), getHeight());
         }
 
-        // 2. DARK OVERLAY & VIGNETTE
-        g2.setColor(new Color(0, 0, 0, 140)); // Base Overlay
-        g2.fillRect(0, 0, getWidth(), getHeight());
+        if (titleImage != null) {
+            int tw = (int)(titleImage.getWidth(null) * TITLE_SCALE);
+            int th = (int)(titleImage.getHeight(null) * TITLE_SCALE);
+            int tx = (getWidth() - tw) / 2;
+            int ty = 80;
+            g2.drawImage(titleImage, tx, ty, tw, th, null);
 
-        // RADIAL VIGNETTE (Manual with gradient)
-        int w = getWidth();
-        int h = getHeight();
-        float[] dist = { 0.0f, 1.0f };
-        Color[] colors = { new Color(0, 0, 0, 0), new Color(0, 0, 0, 230) };
-        java.awt.RadialGradientPaint p = new java.awt.RadialGradientPaint(
-            new java.awt.geom.Point2D.Double(w/2, h/2), w, dist, colors);
-        g2.setPaint(p);
-        g2.fillRect(0, 0, w, h);
+            if (taglineImage != null) {
+                int tgw = (int)(taglineImage.getWidth(null) * TAGLINE_SCALE);
+                int tgh = (int)(taglineImage.getHeight(null) * TAGLINE_SCALE);
+                int tgx = (getWidth() - tgw) / 2;
+                int tgy = ty + th - 22; // Match layoutComponents
+                g2.drawImage(taglineImage, tgx, tgy, tgw, tgh, null);
+            }
+        }
+
+        g2.dispose();
     }
 }

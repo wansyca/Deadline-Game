@@ -1,91 +1,131 @@
 package com.deadline.ui;
 
-import java.awt.BasicStroke;
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.Image;
 import java.awt.RenderingHints;
-
-import javax.swing.JLabel;
+import java.awt.image.BufferedImage;
+import javax.swing.ImageIcon;
 import javax.swing.JPanel;
-import javax.swing.SwingConstants;
 import javax.swing.Timer;
+import com.deadline.main.Main;
 
 public class LoadingPage extends JPanel {
 
     private int progress = 0;
+    private int dots = 0;
+    private Image bgImage;
+    private String targetPage = Main.DASHBOARD;
+    
+    // Very low resolution to force extreme pixelation
+    private static final int VIRTUAL_WIDTH = 320;
+    private static final int VIRTUAL_HEIGHT = 240;
 
     public LoadingPage() {
-        setLayout(new BorderLayout());
-        setBackground(new Color(10, 10, 10));
+        try {
+            java.net.URL url = getClass().getResource("/assets/bg.png");
+            if (url != null) bgImage = new ImageIcon(url).getImage();
+        } catch (Exception e) {}
 
-        JPanel centerPanel = new JPanel(new GridBagLayout());
-        centerPanel.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.insets = new Insets(10, 10, 10, 10);
-
-        JLabel title = new JLabel("23:59 — SUBMIT OR DIE", SwingConstants.CENTER);
-        title.setForeground(new Color(255, 50, 50));
-        title.setFont(new Font("Segoe UI", Font.BOLD, 42));
-        gbc.gridy = 0;
-        centerPanel.add(title, gbc);
-
-        JLabel percent = new JLabel("Loading 0%", SwingConstants.CENTER);
-        percent.setForeground(Color.LIGHT_GRAY);
-        percent.setFont(new Font("Segoe UI", Font.ITALIC, 18));
-        gbc.gridy = 1;
-        centerPanel.add(percent, gbc);
-
-        add(centerPanel, BorderLayout.CENTER);
-
-        // 🔥 progress bar custom
-        Timer timer = new Timer(30, e -> {
+        // Progress Timer (roughly 3 seconds to reach 100)
+        Timer progressTimer = new Timer(30, e -> {
             if (progress < 100) {
-                progress++;
-                percent.setText("Menyiapkan berkas deadline... " + progress + "%");
+                progress += 1;
                 repaint();
             } else {
                 ((Timer) e.getSource()).stop();
+                // Switch to the target page ONLY when 100% is reached
+                Main.switchPage(targetPage);
             }
+        });
+
+        Timer dotsTimer = new Timer(500, e -> {
+            dots = (dots + 1) % 4;
+            repaint();
         });
 
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentShown(java.awt.event.ComponentEvent evt) {
                 progress = 0;
-                timer.restart();
+                dots = 0;
+                progressTimer.restart();
+                dotsTimer.restart();
             }
         });
+    }
+
+    public void setTargetPage(String page) {
+        this.targetPage = page;
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D) g;
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Render to a tiny buffer
+        BufferedImage buffer = new BufferedImage(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = buffer.createGraphics();
 
-        int w = getWidth();
-        int barWidth = 400;
-        int x = (w - barWidth) / 2;
-        int y = getHeight() / 2 + 80;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
 
-        // background bar
-        g2.setColor(new Color(50, 50, 50));
-        g2.fillRoundRect(x, y, barWidth, 12, 10, 10);
+        // 1. BACKGROUND
+        if (bgImage != null) {
+            g2.drawImage(bgImage, 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, null);
+        }
+        g2.setColor(new Color(0, 0, 0, 220));
+        g2.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
 
-        // progress merah
-        g2.setColor(new Color(220, 0, 0));
-        g2.fillRoundRect(x, y, (int) (barWidth * (progress / 100.0)), 12, 10, 10);
+        int centerX = VIRTUAL_WIDTH / 2;
+        int centerY = VIRTUAL_HEIGHT / 2;
 
-        // Glow effect
-        g2.setColor(new Color(255, 0, 0, 50));
-        g2.setStroke(new BasicStroke(4));
-        g2.drawRoundRect(x - 2, y - 2, barWidth + 4, 16, 12, 12);
+        // 2. TITLE (Lowered font size for low-res)
+        g2.setFont(new Font("Monospaced", Font.BOLD, 20));
+        String title = "23:59 — SUBMIT OR DIE";
+        int titleWidth = g2.getFontMetrics().stringWidth(title);
+        
+        g2.setColor(new Color(100, 0, 0));
+        g2.drawString(title, centerX - (titleWidth / 2) + 1, centerY - 40 + 1);
+        g2.setColor(new Color(255, 0, 0));
+        g2.drawString(title, centerX - (titleWidth / 2), centerY - 40);
+
+        // 3. LOADING TEXT
+        g2.setFont(new Font("Monospaced", Font.BOLD, 9));
+        StringBuilder sb = new StringBuilder("Menyiapkan berkas deadline");
+        for(int i=0; i<dots; i++) sb.append(".");
+        String displayStatus = sb.toString() + " " + progress + "%";
+        int statusWidth = g2.getFontMetrics().stringWidth("Menyiapkan berkas deadline... 100%");
+        
+        g2.setColor(Color.WHITE);
+        g2.drawString(displayStatus, centerX - (statusWidth / 2), centerY - 10);
+
+        // 4. PROGRESS BAR
+        int barW = 200;
+        int barH = 10;
+        int barX = centerX - (barW / 2);
+        int barY = centerY + 5;
+
+        g2.setColor(new Color(60, 60, 60));
+        g2.drawRect(barX - 1, barY - 1, barW + 1, barH + 1);
+        
+        int fillW = (int) (barW * (progress / 100.0));
+        g2.setColor(new Color(255, 30, 30));
+        g2.fillRect(barX, barY, fillW, barH);
+        
+        // Grid pattern
+        g2.setColor(new Color(0, 0, 0, 80));
+        for (int i = 0; i < barW; i += 6) {
+            g2.drawLine(barX + i, barY, barX + i, barY + barH);
+        }
+
+        g2.dispose();
+
+        // Stretch the tiny buffer to the screen with Nearest Neighbor
+        Graphics2D gFinal = (Graphics2D) g;
+        gFinal.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        gFinal.drawImage(buffer, 0, 0, getWidth(), getHeight(), null);
     }
 }

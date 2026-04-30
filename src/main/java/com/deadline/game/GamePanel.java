@@ -33,6 +33,9 @@ import com.deadline.model.Assignment;
 import com.deadline.service.LeaderboardManager;
 import com.deadline.ui.CustomAlert;
 import com.deadline.ui.PixelAssets;
+import java.awt.image.BufferedImage;
+import javax.swing.ImageIcon;
+import java.awt.Image;
 
 public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
@@ -83,6 +86,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private Rectangle btnRetry;
     private Rectangle btnExitGame;
 
+    private BufferedImage retryImg;
+    private BufferedImage menuImg;
+
     public GamePanel() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setFocusable(true);
@@ -90,6 +96,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         // Load Pixel Assets statically
         PixelAssets.loadAll();
+        loadButtonAssets();
 
         addMouseListener(new MouseAdapter() {
             @Override
@@ -440,6 +447,27 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
     }
 
+    private void loadButtonAssets() {
+        retryImg = loadAndScale("/assets/buttons/btn_try_normal.png", 180, 50);
+        menuImg = loadAndScale("/assets/buttons/btn_menu_normal.png", 180, 50);
+    }
+
+    private BufferedImage loadAndScale(String path, int w, int h) {
+        try {
+            java.net.URL url = getClass().getResource(path);
+            if (url == null) return null;
+            ImageIcon icon = new ImageIcon(url);
+            BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = bi.createGraphics();
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            g2.drawImage(icon.getImage(), 0, 0, w, h, null);
+            g2.dispose();
+            return bi;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void updateButtonBounds() {
         int panelW = getWidth();
         int panelH = getHeight();
@@ -448,9 +476,15 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (panelH <= 0)
             panelH = HEIGHT;
 
-        int btnY = panelH / 2 + 200;
-        btnRetry = new Rectangle(panelW / 2 - 200, btnY, 180, 50);
-        btnMenu = new Rectangle(panelW / 2 + 20, btnY, 180, 50);
+        int btnW = 180;
+        int btnH = 50;
+        int gap = 30;
+        int totalW = (btnW * 2) + gap;
+        int startX = (panelW - totalW) / 2;
+        int btnY = panelH / 2 + 100; 
+
+        btnRetry = new Rectangle(startX, btnY, btnW, btnH);
+        btnMenu = new Rectangle(startX + btnW + gap, btnY, btnW, btnH);
         btnExitGame = new Rectangle(panelW - 130, 25, 100, 40);
     }
 
@@ -839,8 +873,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             String subText = "Yahh, telat submit tugas";
             g2.drawString(subText, (panelW - g2.getFontMetrics().stringWidth(subText)) / 2, panelH / 2 - 80);
 
-            drawButton(g2, "RETRY", btnRetry, new Color(40, 150, 40));
-            drawButton(g2, "MENU", btnMenu, new Color(40, 40, 150));
+            if (retryImg != null) {
+                g2.drawImage(retryImg, btnRetry.x, btnRetry.y, null);
+            }
+            if (menuImg != null) {
+                g2.drawImage(menuImg, btnMenu.x, btnMenu.y, null);
+            }
 
             if (cachedTopScores != null && !cachedTopScores.isEmpty()) {
                 int boardY = panelH / 2 - 10;
