@@ -18,19 +18,7 @@ public class Main {
     private static JFrame frame;
     private static JPanel mainPanel;
     private static CardLayout cardLayout;
-    private static GamePanel gamePanel;
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            // Initialize database on startup
-            DatabaseManager.initializeDatabase();
-
-            frame = new JFrame("23:59 — SUBMIT OR DIE");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-            // FIXED RESOLUTION (4:3 Ratio to match background)
-            int width = 1024;
-            int height = 768;
+    private static GamePanel gamePanel;   
             
             mainPanel = new JPanel(cardLayout = new CardLayout());
             mainPanel.setPreferredSize(new Dimension(width, height));
