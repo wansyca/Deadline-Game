@@ -4,14 +4,20 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-
-import com.deadline.ui.PixelAssets;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 
 public class Player extends GameObject {
 
     private String name = "Mahasiswa";
-    private String avatarPath;
+    private String avatarFolder; // cewe or cowo
+
+    private BufferedImage up1, up2, down1, down2, left1, left2, right1, right2;
+    private String direction = "down";
+    private int spriteCounter = 0;
+    private int spriteNum = 1;
 
     private double prevExactX, prevExactY;
     private double exactX, exactY;
@@ -20,23 +26,45 @@ public class Player extends GameObject {
 
     private int carriedAssignments = 0;
     private final int MAX_CARRY = 3;
-
     private int collectedBooks = 0;
-    private int animTick = 0;
-    private int direction = 0; // 0=Depan, 1=Belakang, 2=Kiri, 3=Kanan
     private boolean isMoving = false;
 
+    // Size configuration
+    private static final int SCALE = 6;
+    private static final int TILE_SIZE = 16 * SCALE; // 96x96
+
     public Player(int x, int y) {
-        // Enlarge player to 64x64
-        super(x, y, 64, 64);
+        super(x, y, TILE_SIZE, TILE_SIZE);
         this.exactX = x;
         this.exactY = y;
         this.prevExactX = x;
         this.prevExactY = y;
     }
 
-    public void setAvatar(String path) {
-        this.avatarPath = path;
+    public void setAvatar(String folder) {
+        this.avatarFolder = folder;
+        loadImages();
+    }
+
+    private void loadImages() {
+        try {
+            String path = "/assets/player/" + avatarFolder + "/";
+            up1 = ImageIO.read(getClass().getResourceAsStream(path + "up_1.png"));
+            up2 = ImageIO.read(getClass().getResourceAsStream(path + "up_2.png"));
+            down1 = ImageIO.read(getClass().getResourceAsStream(path + "down_1.png"));
+            down2 = ImageIO.read(getClass().getResourceAsStream(path + "down_2.png"));
+            left1 = ImageIO.read(getClass().getResourceAsStream(path + "left_1.png"));
+            
+            // Handle optional left_2/right_2
+            try { left2 = ImageIO.read(getClass().getResourceAsStream(path + "left_2.png")); } catch (Exception e) { left2 = left1; }
+            
+            right1 = ImageIO.read(getClass().getResourceAsStream(path + "right_1.png"));
+            try { right2 = ImageIO.read(getClass().getResourceAsStream(path + "right_2.png")); } catch (Exception e) { right2 = right1; }
+            
+        } catch (IOException | NullPointerException e) {
+            System.err.println("❌ Failed to load player assets for: " + avatarFolder);
+            e.printStackTrace();
+        }
     }
 
     public void setName(String name) {
@@ -60,8 +88,8 @@ public class Player extends GameObject {
     }
 
     public void setDirection(int dx, int dy) {
-        dX = dx;
-        dY = dy;
+        this.dX = dx;
+        this.dY = dy;
     }
 
     @Override
@@ -85,17 +113,23 @@ public class Player extends GameObject {
         double speed = Math.sqrt(velX * velX + velY * velY);
         if (speed > 0.5) {
             isMoving = true;
-            animTick++;
-
-            // Logic arah gerak
+            
+            // Determine direction
             if (Math.abs(velX) > Math.abs(velY)) {
-                direction = (velX > 0) ? 3 : 2; // Kanan : Kiri
+                direction = (velX > 0) ? "right" : "left";
             } else {
-                direction = (velY > 0) ? 0 : 1; // Depan : Belakang
+                direction = (velY > 0) ? "down" : "up";
+            }
+
+            // Animation logic
+            spriteCounter++;
+            if (spriteCounter > 12) {
+                spriteNum = (spriteNum == 1) ? 2 : 1;
+                spriteCounter = 0;
             }
         } else {
             isMoving = false;
-            // Keep last direction for idle
+            spriteNum = 1; // Reset to idle frame
             velX = 0;
             velY = 0;
         }
@@ -127,55 +161,54 @@ public class Player extends GameObject {
 
     @Override
     public Rectangle getBounds() {
-        // Adjusted hitbox for 64x64 scale
-        return new Rectangle(x + 12, y + 12, width - 24, height - 16);
+        // Adjusted hitbox for 96x96 scale
+        return new Rectangle(x + 20, y + 40, width - 40, height - 44);
     }
 
     @Override
     public void draw(Graphics2D g) {
-        BufferedImage frame = null;
+        BufferedImage image = null;
 
-        // Logic arah gerak (depan, belakang, kiri, kanan)
         switch (direction) {
-            case 0:
-                frame = PixelAssets.imgPlayerDepan;
+            case "up":
+                image = (spriteNum == 1) ? up1 : up2;
                 break;
-            case 1:
-                frame = PixelAssets.imgPlayerBelakang;
+            case "down":
+                image = (spriteNum == 1) ? down1 : down2;
                 break;
-            case 2:
-                frame = (isMoving && (animTick / 10) % 2 == 1) ? PixelAssets.imgPlayerJalanKiri
-                        : PixelAssets.imgPlayerKiri;
+            case "left":
+                image = (spriteNum == 1) ? left1 : left2;
                 break;
-            case 3:
-                frame = (isMoving && (animTick / 10) % 2 == 1) ? PixelAssets.imgPlayerJalanKanan
-                        : PixelAssets.imgPlayerKanan;
+            case "right":
+                image = (spriteNum == 1) ? right1 : right2;
                 break;
         }
 
-        if (frame == null)
-            frame = PixelAssets.imgPlayerDepan; // Fallback
+        if (image == null) return;
 
-        // SHADOW KECIL
+        // PIXEL RENDERING HINT
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+
+        // SHADOW
         g.setColor(new Color(0, 0, 0, 50));
-        g.fillOval(x + 10, y + height - 10, width - 20, 8);
+        g.fillOval(x + 8, y + height - 10, width - 16, 8);
 
         // Draw Player
-        g.drawImage(frame, x, y, width, height, null);
+        g.drawImage(image, x, y, width, height, null);
 
         // NAME TAG
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Monospaced", Font.BOLD, 12));
+        g.setFont(new Font("Monospaced", Font.BOLD, 14));
         int textWidth = g.getFontMetrics().stringWidth(name);
-        g.drawString(name, x + (width - textWidth) / 2, y - 5);
+        g.drawString(name, x + (width - textWidth) / 2, y - 10);
 
-        // ITEM HELD
+        // ITEM HELD UI
         if (carriedAssignments > 0) {
-            g.setColor(new Color(241, 196, 15));
-            g.fillRect(x + width - 15, y, 15, 15);
+            g.setColor(new Color(255, 215, 0));
+            g.fillRoundRect(x + width - 12, y - 5, 18, 18, 5, 5);
             g.setColor(Color.BLACK);
             g.setFont(new Font("Monospaced", Font.BOLD, 12));
-            g.drawString("" + carriedAssignments, x + width - 10, y + 12);
+            g.drawString("" + carriedAssignments, x + width - 8, y + 8);
         }
     }
 
@@ -207,11 +240,7 @@ public class Player extends GameObject {
         this.collectedBooks = count;
     }
 
-    public String getAvatarPath() {
-        return avatarPath;
-    }
-
     public String getAvatar() {
-        return avatarPath;
+        return avatarFolder;
     }
 }

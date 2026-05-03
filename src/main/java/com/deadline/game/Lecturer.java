@@ -3,25 +3,58 @@ package com.deadline.game;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-
-import com.deadline.ui.PixelAssets;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 
 public class Lecturer extends GameObject {
 
     private int type;
     private double speed;
     private double exactX, exactY;
-    private int animTick = 0;
-    private boolean facingRight = true;
+    
+    private BufferedImage up1, up2, down1, down2, left1, left2, right1, right2;
+    private String direction = "down";
+    private int spriteCounter = 0;
+    private int spriteNum = 1;
+    private boolean isMoving = false;
+
+    // Size configuration
+    private static final int SCALE = 6;
+    private static final int TILE_SIZE = 16 * SCALE; // 96x96
 
     public Lecturer(int x, int y, double speed, int type) {
-        // Pixel grid size: 64x64
-        super(x, y, 64, 64);
+        super(x, y, TILE_SIZE, TILE_SIZE);
         this.speed = speed;
         this.type = type;
         this.exactX = x;
         this.exactY = y;
+        loadImages();
+    }
+
+    private void loadImages() {
+        String folder = "";
+        switch (type) {
+            case 0: folder = "dosen_tua"; break;
+            case 1: folder = "domu_cowo"; break;
+            case 2: folder = "dosen_cewe"; break;
+            default: folder = "dosen_tua";
+        }
+
+        try {
+            String path = "/assets/player/" + folder + "/";
+            up1 = ImageIO.read(getClass().getResourceAsStream(path + "up_1.png"));
+            up2 = ImageIO.read(getClass().getResourceAsStream(path + "up_2.png"));
+            down1 = ImageIO.read(getClass().getResourceAsStream(path + "down_1.png"));
+            down2 = ImageIO.read(getClass().getResourceAsStream(path + "down_2.png"));
+            left1 = ImageIO.read(getClass().getResourceAsStream(path + "left_1.png"));
+            try { left2 = ImageIO.read(getClass().getResourceAsStream(path + "left_2.png")); } catch (Exception e) { left2 = left1; }
+            right1 = ImageIO.read(getClass().getResourceAsStream(path + "right_1.png"));
+            try { right2 = ImageIO.read(getClass().getResourceAsStream(path + "right_2.png")); } catch (Exception e) { right2 = right1; }
+        } catch (IOException | NullPointerException e) {
+            System.err.println("❌ Failed to load lecturer assets for: " + folder);
+        }
     }
 
     public void setSpeed(double speed) {
@@ -43,29 +76,37 @@ public class Lecturer extends GameObject {
         if (dist > 5) {
             targetDx = dx / dist;
             targetDy = dy / dist;
+            isMoving = true;
 
-            animTick++;
-            if (dx > 0)
-                facingRight = true;
-            else if (dx < 0)
-                facingRight = false;
+            // Determine direction
+            if (Math.abs(dx) > Math.abs(dy)) {
+                direction = (dx > 0) ? "right" : "left";
+            } else {
+                direction = (dy > 0) ? "down" : "up";
+            }
+
+            // Animation
+            spriteCounter++;
+            if (spriteCounter > 15) {
+                spriteNum = (spriteNum == 1) ? 2 : 1;
+                spriteCounter = 0;
+            }
         } else {
-            animTick = 0;
+            isMoving = false;
+            spriteNum = 1;
         }
 
         exactX += targetDx * speed;
         exactY += targetDy * speed;
 
-        exactX += (Math.random() - 0.5) * 0.5;
-        exactY += (Math.random() - 0.5) * 0.5;
-
+        // Separation logic
         for (Lecturer other : lecturers) {
             if (other != this) {
                 double diffX = this.exactX - other.exactX;
                 double diffY = this.exactY - other.exactY;
                 double distance = Math.sqrt(diffX * diffX + diffY * diffY);
 
-                if (distance < 50) { // Reduced distance for 64x64 scale
+                if (distance < 70) {
                     exactX += diffX * 0.05;
                     exactY += diffY * 0.05;
                 }
@@ -82,28 +123,30 @@ public class Lecturer extends GameObject {
 
     @Override
     public void draw(Graphics2D g) {
-        int frameIndex = (animTick / 5) % PixelAssets.imgLecturerWalk.length;
-        BufferedImage frame = (animTick == 0) ? PixelAssets.imgLecturerIdle : PixelAssets.imgLecturerWalk[frameIndex];
+        BufferedImage image = null;
+
+        switch (direction) {
+            case "up": image = (spriteNum == 1) ? up1 : up2; break;
+            case "down": image = (spriteNum == 1) ? down1 : down2; break;
+            case "left": image = (spriteNum == 1) ? left1 : left2; break;
+            case "right": image = (spriteNum == 1) ? right1 : right2; break;
+        }
+
+        if (image == null) return;
+
+        // PIXEL RENDERING HINT
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
         // SHADOW
         g.setColor(new Color(0, 0, 0, 60));
-        g.fillOval(x + 10, y + height - 8, width - 20, 10);
+        g.fillOval(x + 8, y + height - 8, width - 16, 10);
 
-        // DOSEN IMAGE
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.translate(x + width / 2, y + height / 2);
-
-        if (!facingRight) {
-            g2.scale(-1, 1);
-        }
-
-        // Slightly tint based on type (just an example of variation)
-        g2.drawImage(frame, -width / 2, -height / 2, width, height, null);
-        g2.dispose();
+        // DRAW
+        g.drawImage(image, x, y, width, height, null);
     }
 
     public Rectangle getBounds() {
-        return new Rectangle(x + 16, y + 16, width - 32, height - 16);
+        return new Rectangle(x + 20, y + 40, width - 40, height - 44);
     }
 
     public boolean intersects(Player p) {

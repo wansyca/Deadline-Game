@@ -35,6 +35,7 @@ public class ImageButton extends JButton {
         setBorderPainted(false);
         setContentAreaFilled(false);
         setFocusPainted(false);
+        setOpaque(false);
         setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         addMouseListener(new MouseAdapter() {

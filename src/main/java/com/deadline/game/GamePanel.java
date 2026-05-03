@@ -35,7 +35,6 @@ import com.deadline.ui.CustomAlert;
 import com.deadline.ui.PixelAssets;
 import java.awt.image.BufferedImage;
 import javax.swing.ImageIcon;
-import java.awt.Image;
 
 public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
@@ -88,6 +87,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     private BufferedImage retryImg;
     private BufferedImage menuImg;
+    private BufferedImage exitImg;
+    private BufferedImage gameOverImg;
 
     public GamePanel() {
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -186,9 +187,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         down = false;
         left = false;
         right = false;
-
-        // Dynamic player sprite loading
-        PixelAssets.loadPlayerSprites(avatarPath);
 
         player = new Player(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
         player.setName(playerName);
@@ -448,8 +446,29 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     }
 
     private void loadButtonAssets() {
-        retryImg = loadAndScale("/assets/buttons/btn_try_normal.png", 180, 50);
-        menuImg = loadAndScale("/assets/buttons/btn_menu_normal.png", 180, 50);
+        retryImg = loadAndScale("/assets/buttons/btn_try_normal.png", 170, 55);
+        menuImg = loadAndScale("/assets/buttons/btn_menu_normal.png", 170, 55);
+        exitImg = loadAndScale("/assets/buttons/btn_exit_normal.png", 100, 40);
+        
+        // Load Game Over title asset
+        gameOverImg = loadOriginalImage("/assets/game_over.png");
+    }
+
+    private BufferedImage loadOriginalImage(String path) {
+        try {
+            java.net.URL url = getClass().getResource(path);
+            if (url == null) return null;
+            ImageIcon icon = new ImageIcon(url);
+            int w = icon.getIconWidth();
+            int h = icon.getIconHeight();
+            BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = bi.createGraphics();
+            g2.drawImage(icon.getImage(), 0, 0, null);
+            g2.dispose();
+            return bi;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private BufferedImage loadAndScale(String path, int w, int h) {
@@ -476,12 +495,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (panelH <= 0)
             panelH = HEIGHT;
 
-        int btnW = 180;
-        int btnH = 50;
-        int gap = 30;
+        int btnW = 170; // Match InputPlayerPanel
+        int btnH = 55;
+        int gap = 20;
         int totalW = (btnW * 2) + gap;
         int startX = (panelW - totalW) / 2;
-        int btnY = panelH / 2 + 100; 
+        int btnY = panelH - 160; // Pushed up from previous 100
 
         btnRetry = new Rectangle(startX, btnY, btnW, btnH);
         btnMenu = new Rectangle(startX + btnW + gap, btnY, btnW, btnH);
@@ -852,51 +871,61 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         g2.drawString(lvlStr, badgeX + (badgeW - g2.getFontMetrics().stringWidth(lvlStr)) / 2, badgeY + 42);
 
         if (!isGameOver) {
-            drawButton(g2, "EXIT", btnExitGame, new Color(180, 40, 40));
+            if (exitImg != null) {
+                g2.drawImage(exitImg, btnExitGame.x, btnExitGame.y, null);
+            } else {
+                drawButton(g2, "EXIT", btnExitGame, new Color(180, 40, 40));
+            }
         }
 
         if (isGameOver) {
-            g2.setColor(new Color(15, 5, 5, 200));
+            g2.setColor(new Color(15, 5, 5, 220));
             g2.fillRect(0, 0, panelW, panelH);
 
-            g2.setFont(new Font("Monospaced", Font.BOLD, 80));
-            String overText = "GAME OVER";
-            int textWidth = g2.getFontMetrics().stringWidth(overText);
+            int currentY = 60;
 
-            g2.setColor(Color.BLACK);
-            g2.drawString(overText, (panelW - textWidth) / 2 + 5, panelH / 2 - 125);
-            g2.setColor(new Color(255, 50, 50));
-            g2.drawString(overText, (panelW - textWidth) / 2, panelH / 2 - 130);
+            // 1. GAME OVER IMAGE (Much Smaller)
+            if (gameOverImg != null) {
+                float scale = 0.35f; 
+                int tw = (int)(gameOverImg.getWidth() * scale);
+                int th = (int)(gameOverImg.getHeight() * scale);
+                int tx = (panelW - tw) / 2;
+                g2.drawImage(gameOverImg, tx, currentY, tw, th, null);
+                currentY += th + 15;
+            }
 
+            // 2. SUBTEXT
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Monospaced", Font.PLAIN, 24));
+            g2.setFont(new Font("Monospaced", Font.PLAIN, 22));
             String subText = "Yahh, telat submit tugas";
-            g2.drawString(subText, (panelW - g2.getFontMetrics().stringWidth(subText)) / 2, panelH / 2 - 80);
+            g2.drawString(subText, (panelW - g2.getFontMetrics().stringWidth(subText)) / 2, currentY);
+            currentY += 50;
 
-            if (retryImg != null) {
-                g2.drawImage(retryImg, btnRetry.x, btnRetry.y, null);
-            }
-            if (menuImg != null) {
-                g2.drawImage(menuImg, btnMenu.x, btnMenu.y, null);
-            }
-
+            // 3. MINI LEADERBOARD
             if (cachedTopScores != null && !cachedTopScores.isEmpty()) {
-                int boardY = panelH / 2 - 10;
                 g2.setFont(new Font("Monospaced", Font.BOLD, 20));
                 g2.setColor(Color.YELLOW);
-                String lbTitle = "TOP SURVIVORS";
-                g2.drawString(lbTitle, (panelW - g2.getFontMetrics().stringWidth(lbTitle)) / 2, boardY);
+                String lbTitle = "TOP 5 SURVIVORS";
+                g2.drawString(lbTitle, (panelW - g2.getFontMetrics().stringWidth(lbTitle)) / 2, currentY);
+                currentY += 30;
 
-                int startY = boardY + 30;
                 g2.setFont(new Font("Monospaced", Font.PLAIN, 16));
                 g2.setColor(Color.WHITE);
                 for (int i = 0; i < cachedTopScores.size(); i++) {
                     Map<String, Object> row = cachedTopScores.get(i);
                     String pName = (String) row.get("player_name");
                     int pScore = ((Number) row.get("score")).intValue();
-                    String line = (i + 1) + ". " + pName + " - " + pScore + " pts";
-                    g2.drawString(line, (panelW - g2.getFontMetrics().stringWidth(line)) / 2, startY + (i * 25));
+                    String line = (i + 1) + ". " + String.format("%-15s", pName) + " - " + pScore + " pts";
+                    g2.drawString(line, (panelW - g2.getFontMetrics().stringWidth(line)) / 2, currentY + (i * 25));
                 }
+            }
+
+            // 4. BUTTONS
+            if (retryImg != null) {
+                g2.drawImage(retryImg, btnRetry.x, btnRetry.y, null);
+            }
+            if (menuImg != null) {
+                g2.drawImage(menuImg, btnMenu.x, btnMenu.y, null);
             }
         }
     }
