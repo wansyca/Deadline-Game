@@ -53,6 +53,7 @@ public class PixelAssets {
                 // Furniture
                 PALETTE.put('M', new Color(139, 69, 19)); // Wood Desk
                 PALETTE.put('m', new Color(101, 50, 14)); // Wood Desk Dark
+                PALETTE.put('F', new Color(200, 60, 150)); // Pink Shirt (Cewe)
                 // New Palette for Realism
                 PALETTE.put('U', new Color(255, 255, 255)); // Pure White (Lines)
                 PALETTE.put('Q', new Color(0, 120, 255)); // Water Blue
@@ -60,6 +61,10 @@ public class PixelAssets {
         }
 
         public static BufferedImage generate(String[] layout, int scale) {
+            return generate(layout, scale, ' ', ' '); // Default
+        }
+
+        public static BufferedImage generate(String[] layout, int scale, char shirtTarget, char shirtReplace) {
                 int w = layout[0].length();
                 int h = layout.length;
                 BufferedImage img = new BufferedImage(w * scale, h * scale, BufferedImage.TYPE_INT_ARGB);
@@ -69,6 +74,8 @@ public class PixelAssets {
                         String row = layout[y];
                         for (int x = 0; x < w; x++) {
                                 char c = row.charAt(x);
+                                if (c == shirtTarget && shirtReplace != ' ') c = shirtReplace;
+                                
                                 Color col = PALETTE.getOrDefault(c, new Color(0, 0, 0, 0));
                                 g2.setColor(col);
                                 g2.fillRect(x * scale, y * scale, scale, scale);
@@ -81,120 +88,74 @@ public class PixelAssets {
         // ============================================
         // PLAYER ANIMATIONS (16x16)
         // ============================================
-        public static final String[] PLAYER_IDLE = {
-                        "      HHHH      ",
-                        "     HSSSSHH    ",
-                        "     HSSSSHH    ",
-                        "      SSSS      ",
-                        "      CCCC      ",
-                        "     CCCCCC     ",
-                        "    SCCCCCC S   ",
-                        "    S C  C  S   ",
-                        "      P  P      ",
-                        "      P  P      ",
-                        "     PP  PP     ",
-                        "     PP  PP     ",
-                        "     BB  BB     ",
-                        "                ",
-                        "                ",
-                        "                "
+        // DOWN
+        public static final String[] PLAYER_DOWN_1 = {
+            "      HHHH      ", "     HSSSSHH    ", "     HSSSSHH    ", "      SSSS      ",
+            "      CCCC      ", "     CCCCCC     ", "    SCCCCCC S   ", "    S C  C  S   ",
+            "      P  P      ", "      P  P      ", "     PP  PP     ", "     PP  PP     ",
+            "     BB  BB     ", "                ", "                ", "                "
         };
+        public static final String[] PLAYER_DOWN_2 = {
+            "      HHHH      ", "     HSSSSHH    ", "     HSSSSHH    ", "      SSSS      ",
+            "      CCCC      ", "     CCCCCC     ", "    SCCCCCC S   ", "    S C  C      ",
+            "      P  P      ", "      PP P      ", "      P PP      ", "      P  BB     ",
+            "     BB         ", "                ", "                ", "                "
+        };
+        // UP
+        public static final String[] PLAYER_UP_1 = {
+            "      HHHH      ", "     HHHHHHH    ", "     HHHHHHH    ", "      HHHH      ",
+            "      CCCC      ", "     CCCCCC     ", "     CCCCCC     ", "      C  C      ",
+            "      P  P      ", "      P  P      ", "     PP  PP     ", "     PP  PP     ",
+            "     BB  BB     ", "                ", "                ", "                "
+        };
+        public static final String[] PLAYER_UP_2 = {
+            "      HHHH      ", "     HHHHHHH    ", "     HHHHHHH    ", "      HHHH      ",
+            "      CCCC      ", "     CCCCCC     ", "     CCCCCC     ", "      C  C      ",
+            "      P  P      ", "      PP P      ", "      P PP      ", "      P  BB     ",
+            "     BB         ", "                ", "                ", "                "
+        };
+        // RIGHT
+        public static final String[] PLAYER_RIGHT_1 = { // Left leg forward, Right arm back
+            "      HHHH      ", "     HSSSSHH    ", "     HSSSSHH    ", "      SSSS      ",
+            "      CCCC      ", "     CCCCCC     ", "     CCCCCCS    ", "     CC  C      ",
+            "     P   P      ", "     P   P      ", "     P   PP     ", "     P    BB    ",
+            "    BB          ", "                ", "                ", "                "
+        };
+        public static final String[] PLAYER_RIGHT_2 = { // Right leg forward, Left arm back
+            "      HHHH      ", "     HSSSSHH    ", "     HSSSSHH    ", "      SSSS      ",
+            "      CCCC      ", "     CCCCCC     ", "    SCCCCCC     ", "      C  CC     ",
+            "      P  P      ", "      P  P      ", "     PP  P      ", "    BB   P      ",
+            "         BB     ", "                ", "                ", "                "
+        };
+        // LEFT (Mirrored Right)
+        public static final String[] PLAYER_LEFT_1 = mirror(PLAYER_RIGHT_1);
+        public static final String[] PLAYER_LEFT_2 = mirror(PLAYER_RIGHT_2);
 
-        public static final String[] PLAYER_WALK_1 = {
-                        "      HHHH      ",
-                        "     HSSSSHH    ",
-                        "     HSSSSHH    ",
-                        "      SSSS      ",
-                        "      CCCC      ",
-                        "     CCCCCC     ",
-                        "    SCCCCCC S   ",
-                        "    S C  C      ",
-                        "      P  P      ",
-                        "      PP P      ",
-                        "      P PP      ",
-                        "      P  BB     ",
-                        "     BB         ",
-                        "                ",
-                        "                ",
-                        "                "
-        };
+        private static String[] mirror(String[] layout) {
+            String[] result = new String[layout.length];
+            for(int i=0; i<layout.length; i++) {
+                result[i] = new StringBuilder(layout[i]).reverse().toString();
+            }
+            return result;
+        }
 
-        public static final String[] PLAYER_WALK_2 = {
-                        "      HHHH      ",
-                        "     HSSSSHH    ",
-                        "     HSSSSHH    ",
-                        "      SSSS      ",
-                        "      CCCC      ",
-                        "     CCCCCC     ",
-                        "    SCCCCCC S   ",
-                        "      C  C  S   ",
-                        "      P  P      ",
-                        "      P PP      ",
-                        "     PP P       ",
-                        "    BB  P       ",
-                        "         BB     ",
-                        "                ",
-                        "                ",
-                        "                "
-        };
+        // LECTURER (Similar but with Shirt 'D' for Dosen)
+        public static final String[] LECT_DOWN_1 = replace(PLAYER_DOWN_1, 'C', 'D');
+        public static final String[] LECT_DOWN_2 = replace(PLAYER_DOWN_2, 'C', 'D');
+        public static final String[] LECT_UP_1 = replace(PLAYER_UP_1, 'C', 'D');
+        public static final String[] LECT_UP_2 = replace(PLAYER_UP_2, 'C', 'D');
+        public static final String[] LECT_RIGHT_1 = replace(PLAYER_RIGHT_1, 'C', 'D');
+        public static final String[] LECT_RIGHT_2 = replace(PLAYER_RIGHT_2, 'C', 'D');
+        public static final String[] LECT_LEFT_1 = mirror(LECT_RIGHT_1);
+        public static final String[] LECT_LEFT_2 = mirror(LECT_RIGHT_2);
 
-        // ============================================
-        // LECTURER (16x16) - DOSEN UMUM
-        // ============================================
-        public static final String[] LECTURER_IDLE = {
-                        "      WWWW      ",
-                        "     WSSSSW     ",
-                        "     WSSSSW     ",
-                        "      SSSS      ",
-                        "      DDDD      ",
-                        "     DDDDDD     ",
-                        "    SDDDDDD S   ",
-                        "    S D  D  S   ",
-                        "      P  P      ",
-                        "      P  P      ",
-                        "     PP  PP     ",
-                        "     PP  PP     ",
-                        "     BB  BB     ",
-                        "                ",
-                        "                ",
-                        "                "
-        };
-        public static final String[] LECTURER_WALK_1 = {
-                        "      WWWW      ",
-                        "     WSSSSW     ",
-                        "     WSSSSW     ",
-                        "      SSSS      ",
-                        "      DDDD      ",
-                        "     DDDDDD     ",
-                        "    SDDDDDD S   ",
-                        "    S D  D      ",
-                        "      P  P      ",
-                        "      PP P      ",
-                        "      P PP      ",
-                        "      P  BB     ",
-                        "     BB         ",
-                        "                ",
-                        "                ",
-                        "                "
-        };
-        public static final String[] LECTURER_WALK_2 = {
-                        "      WWWW      ",
-                        "     WSSSSW     ",
-                        "     WSSSSW     ",
-                        "      SSSS      ",
-                        "      DDDD      ",
-                        "     DDDDDD     ",
-                        "    SDDDDDD S   ",
-                        "      D  D  S   ",
-                        "      P  P      ",
-                        "      P PP      ",
-                        "     PP P       ",
-                        "    BB  P       ",
-                        "         BB     ",
-                        "                ",
-                        "                ",
-                        "                "
-        };
+        private static String[] replace(String[] layout, char oldChar, char newChar) {
+            String[] result = new String[layout.length];
+            for(int i=0; i<layout.length; i++) {
+                result[i] = layout[i].replace(oldChar, newChar);
+            }
+            return result;
+        }
 
         // ============================================
         // MAP TILES (16x16) - WILL BE SCALED TO 64x64 IN GAME
@@ -479,10 +440,9 @@ public class PixelAssets {
         public static void loadAll() {
                 int charScale = 4; // Scale 16x16 to 64x64 visually per character
 
-                imgLecturerIdle = generate(LECTURER_IDLE, charScale);
-                imgLecturerWalk = new BufferedImage[] { generate(LECTURER_WALK_1, charScale),
-                                generate(LECTURER_IDLE, charScale), generate(LECTURER_WALK_2, charScale),
-                                generate(LECTURER_IDLE, charScale) };
+                imgLecturerIdle = generate(LECT_DOWN_1, charScale);
+                imgLecturerWalk = new BufferedImage[] { generate(LECT_DOWN_1, charScale),
+                                generate(LECT_DOWN_2, charScale) };
 
                 imgGrass = generate(TILE_GRASS, charScale);
                 imgGrassFlower = generate(TILE_GRASS_FLOWER, charScale);

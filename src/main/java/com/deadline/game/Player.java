@@ -6,7 +6,6 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import javax.imageio.ImageIO;
 
 public class Player extends GameObject {
@@ -49,22 +48,37 @@ public class Player extends GameObject {
     private void loadImages() {
         try {
             String path = "/assets/player/" + avatarFolder + "/";
+            
             up1 = ImageIO.read(getClass().getResourceAsStream(path + "up_1.png"));
             up2 = ImageIO.read(getClass().getResourceAsStream(path + "up_2.png"));
             down1 = ImageIO.read(getClass().getResourceAsStream(path + "down_1.png"));
             down2 = ImageIO.read(getClass().getResourceAsStream(path + "down_2.png"));
-            left1 = ImageIO.read(getClass().getResourceAsStream(path + "left_1.png"));
             
-            // Handle optional left_2/right_2
-            try { left2 = ImageIO.read(getClass().getResourceAsStream(path + "left_2.png")); } catch (Exception e) { left2 = left1; }
-            
+            // For Right
             right1 = ImageIO.read(getClass().getResourceAsStream(path + "right_1.png"));
-            try { right2 = ImageIO.read(getClass().getResourceAsStream(path + "right_2.png")); } catch (Exception e) { right2 = right1; }
+            right2 = ImageIO.read(getClass().getResourceAsStream(path + "right_2.png"));
             
-        } catch (IOException | NullPointerException e) {
-            System.err.println("❌ Failed to load player assets for: " + avatarFolder);
+            // For Left: GUARANTEE consistency by flipping the right sprites
+            // This prevents the character from 'changing' if left_1.png is a different asset.
+            left1 = flipImage(right1);
+            left2 = flipImage(right2);
+            
+            System.out.println("✅ Loaded and mirrored assets for: " + avatarFolder);
+        } catch (Exception e) {
+            System.err.println("❌ Critical error loading assets: " + avatarFolder);
             e.printStackTrace();
         }
+    }
+
+    private BufferedImage flipImage(BufferedImage src) {
+        if (src == null) return null;
+        int w = src.getWidth();
+        int h = src.getHeight();
+        BufferedImage dest = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        java.awt.Graphics2D g2 = dest.createGraphics();
+        g2.drawImage(src, w, 0, 0, h, 0, 0, w, h, null);
+        g2.dispose();
+        return dest;
     }
 
     public void setName(String name) {
@@ -111,25 +125,26 @@ public class Player extends GameObject {
         velY += (targetVelY - velY) * 0.3;
 
         double speed = Math.sqrt(velX * velX + velY * velY);
-        if (speed > 0.5) {
+        if (speed > 0.2) { // More sensitive movement detection
             isMoving = true;
             
-            // Determine direction
-            if (Math.abs(velX) > Math.abs(velY)) {
+            // Determine direction - prioritizing horizontal for 'right/left' feel
+            if (Math.abs(velX) >= Math.abs(velY)) {
                 direction = (velX > 0) ? "right" : "left";
             } else {
                 direction = (velY > 0) ? "down" : "up";
             }
 
-            // Animation logic
+            // Animation logic (8 ticks for 'mulus' feel)
             spriteCounter++;
-            if (spriteCounter > 12) {
+            if (spriteCounter >= 8) {
                 spriteNum = (spriteNum == 1) ? 2 : 1;
                 spriteCounter = 0;
             }
         } else {
             isMoving = false;
-            spriteNum = 1; // Reset to idle frame
+            spriteNum = 1; // IDLE
+            spriteCounter = 0;
             velX = 0;
             velY = 0;
         }
@@ -189,12 +204,31 @@ public class Player extends GameObject {
         // PIXEL RENDERING HINT
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
+        // NORMALIZE SIZE: Scale everything to 96px height regardless of PNG resolution
+        int targetHeight = 96;
+        int imgH = (image != null) ? image.getHeight() : 16;
+        int imgW = (image != null) ? image.getWidth() : 16;
+        
+        double scaleRatio = (double) targetHeight / Math.max(1, imgH);
+        int drawW = (int) (imgW * scaleRatio);
+        int drawH = targetHeight;
+        
+        // Center horizontally in the 96px box, align feet to bottom
+        int drawX = x + (width - drawW) / 2;
+        int drawY = y + (height - drawH);
+
         // SHADOW
         g.setColor(new Color(0, 0, 0, 50));
-        g.fillOval(x + 8, y + height - 10, width - 16, 8);
+        g.fillOval(x + 12, y + height - 10, width - 24, 8);
 
-        // Draw Player
-        g.drawImage(image, x, y, width, height, null);
+        if (image != null) {
+            // BOUNCE EFFECT
+            int finalY = drawY;
+            if (isMoving && spriteNum == 2) {
+                finalY += 4; 
+            }
+            g.drawImage(image, drawX, finalY, drawW, drawH, null);
+        }
 
         // NAME TAG
         g.setColor(Color.WHITE);

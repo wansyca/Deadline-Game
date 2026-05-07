@@ -17,6 +17,7 @@ public class LoadingPage extends JPanel {
     private int progress = 0;
     private int dots = 0;
     private Image bgImage;
+    private Image titleImage;
     private String targetPage = Main.DASHBOARD;
     
     // Very low resolution to force extreme pixelation
@@ -25,12 +26,15 @@ public class LoadingPage extends JPanel {
 
     public LoadingPage() {
         try {
-            java.net.URL url = getClass().getResource("/assets/bg.png");
-            if (url != null) bgImage = new ImageIcon(url).getImage();
+            java.net.URL bgUrl = getClass().getResource("/assets/bg.png");
+            if (bgUrl != null) bgImage = new ImageIcon(bgUrl).getImage();
+            
+            java.net.URL titleUrl = getClass().getResource("/assets/judul.png");
+            if (titleUrl != null) titleImage = new ImageIcon(titleUrl).getImage();
         } catch (Exception e) {}
 
-        // Progress Timer (roughly 3 seconds to reach 100)
-        Timer progressTimer = new Timer(30, e -> {
+        // Progress Timer (roughly 1.5 seconds to reach 100)
+        Timer progressTimer = new Timer(15, e -> {
             if (progress < 100) {
                 progress += 1;
                 repaint();
@@ -82,25 +86,40 @@ public class LoadingPage extends JPanel {
         int centerX = VIRTUAL_WIDTH / 2;
         int centerY = VIRTUAL_HEIGHT / 2;
 
-        // 2. TITLE (Lowered font size for low-res)
-        g2.setFont(new Font("Monospaced", Font.BOLD, 20));
-        String title = "23:59 — SUBMIT OR DIE";
-        int titleWidth = g2.getFontMetrics().stringWidth(title);
-        
-        g2.setColor(new Color(100, 0, 0));
-        g2.drawString(title, centerX - (titleWidth / 2) + 1, centerY - 40 + 1);
-        g2.setColor(new Color(255, 0, 0));
-        g2.drawString(title, centerX - (titleWidth / 2), centerY - 40);
+        // 2. TITLE & TAGLINE
+        int titleY = centerY - 50;
+        if (titleImage != null) {
+            // Draw 23:59 Image
+            int imgW = 60; // Smaller size for virtual resolution
+            int imgH = (int)(titleImage.getHeight(null) * ((double)imgW / titleImage.getWidth(null)));
+            g2.drawImage(titleImage, centerX - (imgW / 2), titleY, imgW, imgH, null);
+            
+            // Draw "SUBMIT OR DIE" smaller below (closer to logo)
+            g2.setFont(new Font("Monospaced", Font.BOLD, 10));
+            String tagline = "SUBMIT OR DIE";
+            int tagWidth = g2.getFontMetrics().stringWidth(tagline);
+            g2.setColor(new Color(100, 0, 0));
+            g2.drawString(tagline, centerX - (tagWidth / 2) + 1, titleY + imgH + 8);
+            g2.setColor(new Color(255, 0, 0));
+            g2.drawString(tagline, centerX - (tagWidth / 2), titleY + imgH + 7);
+        } else {
+            // Fallback if image fails
+            g2.setFont(new Font("Monospaced", Font.BOLD, 18));
+            String title = "23:59 — SUBMIT OR DIE";
+            int titleWidth = g2.getFontMetrics().stringWidth(title);
+            g2.setColor(new Color(255, 0, 0));
+            g2.drawString(title, centerX - (titleWidth / 2), titleY);
+        }
 
-        // 3. LOADING TEXT
-        g2.setFont(new Font("Monospaced", Font.BOLD, 9));
+        // 3. LOADING TEXT (Lowered to prevent overlap)
+        g2.setFont(new Font("Monospaced", Font.BOLD, 8));
         StringBuilder sb = new StringBuilder("Menyiapkan berkas deadline");
         for(int i=0; i<dots; i++) sb.append(".");
         String displayStatus = sb.toString() + " " + progress + "%";
         int statusWidth = g2.getFontMetrics().stringWidth("Menyiapkan berkas deadline... 100%");
         
         g2.setColor(Color.WHITE);
-        g2.drawString(displayStatus, centerX - (statusWidth / 2), centerY - 10);
+        g2.drawString(displayStatus, centerX - (statusWidth / 2), centerY + 0);
 
         // 4. PROGRESS BAR
         int barW = 200;

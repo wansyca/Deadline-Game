@@ -1,6 +1,7 @@
 package com.deadline.main;
 
 import com.deadline.ui.*;
+import com.deadline.ui.SplashScreen;
 import com.deadline.game.*;
 import com.deadline.audio.*;
 import com.deadline.backend.DatabaseManager;
@@ -14,6 +15,7 @@ public class Main {
     public static final String LEADERBOARD = "LEADERBOARD";
     public static final String GAME = "GAME";
     public static final String LOADING = "LOADING";
+    public static final String SPLASH = "SPLASH";
 
     private static JFrame frame;
     private static JPanel mainPanel;
@@ -41,6 +43,7 @@ public class Main {
             mainPanel.add(new InputPlayerPanel(), INPUT_PLAYER);
             mainPanel.add(new SurvivorRankingUI(), LEADERBOARD);
             mainPanel.add(new LoadingPage(), LOADING);
+            mainPanel.add(new SplashScreen(), SPLASH);
 
             gamePanel = new GamePanel();
             mainPanel.add(gamePanel, GAME);
@@ -50,7 +53,7 @@ public class Main {
             frame.setLocationRelativeTo(null); // Center on screen
             frame.setVisible(true);
 
-            switchPage(DASHBOARD);
+            switchPage(SPLASH);
         });
     }
 

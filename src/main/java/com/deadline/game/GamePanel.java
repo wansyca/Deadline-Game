@@ -48,7 +48,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private static final int WORLD_WIDTH = MAP_COLS * TILE_SIZE;
     private static final int WORLD_HEIGHT = MAP_ROWS * TILE_SIZE;
 
-    private static final int FPS = 60;
+    private Font pixelFont;
+    private final int FPS = 60;
 
     private int camX = 0;
     private int camY = 0;
@@ -97,6 +98,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         // Load Pixel Assets statically
         PixelAssets.loadAll();
+        loadPixelFont();
         loadButtonAssets();
 
         addMouseListener(new MouseAdapter() {
@@ -806,10 +808,25 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         g2.setStroke(new BasicStroke(2));
         g2.drawRect(rect.x, rect.y, rect.width, rect.height);
 
-        g2.setFont(new Font("Monospaced", Font.BOLD, 18));
+        if (pixelFont != null) {
+            g2.setFont(pixelFont.deriveFont(Font.BOLD, 18));
+        } else {
+            g2.setFont(new Font("Monospaced", Font.BOLD, 18));
+        }
         int tw = g2.getFontMetrics().stringWidth(text);
         g2.setColor(Color.WHITE);
         g2.drawString(text, rect.x + (rect.width - tw) / 2, rect.y + 32);
+    }
+
+    private void loadPixelFont() {
+        try {
+            java.io.InputStream is = getClass().getResourceAsStream("/assets/font/pixel.ttf");
+            if (is != null) {
+                pixelFont = Font.createFont(Font.TRUETYPE_FONT, is);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error loading pixel font in GamePanel");
+        }
     }
 
     private void drawUI(Graphics2D g2) {
@@ -833,25 +850,45 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         g2.setStroke(new BasicStroke(2));
         g2.drawRect(hudX, hudY, hudW, hudH);
 
-        g2.setFont(new Font("Monospaced", Font.BOLD, 16));
+        if (pixelFont != null) {
+            g2.setFont(pixelFont.deriveFont(Font.BOLD, 16));
+        } else {
+            g2.setFont(new Font("Monospaced", Font.BOLD, 16));
+        }
         g2.setColor(new Color(180, 200, 255));
-        g2.drawString("SURVIVOR: " + player.getName().toUpperCase(), hudX + 20, hudY + 25);
+        g2.drawString("SURVIVOR: " + player.getName().toUpperCase(), hudX + 20, hudY + 30);
 
-        g2.setFont(new Font("Monospaced", Font.PLAIN, 18));
+        if (pixelFont != null) {
+            g2.setFont(pixelFont.deriveFont(Font.PLAIN, 18));
+        } else {
+            g2.setFont(new Font("Monospaced", Font.PLAIN, 18));
+        }
         g2.setColor(Color.WHITE);
-        g2.drawString("TARGET", hudX + 20, hudY + 58);
+        g2.drawString("TARGET", hudX + 20, hudY + 62);
 
-        g2.setFont(new Font("Monospaced", Font.BOLD, 22));
+        if (pixelFont != null) {
+            g2.setFont(pixelFont.deriveFont(Font.BOLD, 22));
+        } else {
+            g2.setFont(new Font("Monospaced", Font.BOLD, 22));
+        }
         g2.setColor(new Color(255, 215, 0));
-        g2.drawString(collectedBooks + "/" + targetBooks, hudX + 150, hudY + 59);
+        g2.drawString(collectedBooks + "/" + targetBooks, hudX + 160, hudY + 63);
 
-        g2.setFont(new Font("Monospaced", Font.PLAIN, 18));
+        if (pixelFont != null) {
+            g2.setFont(pixelFont.deriveFont(Font.PLAIN, 18));
+        } else {
+            g2.setFont(new Font("Monospaced", Font.PLAIN, 18));
+        }
         g2.setColor(Color.WHITE);
-        g2.drawString("TIME", hudX + 20, hudY + 85);
+        g2.drawString("TIME", hudX + 20, hudY + 90);
 
-        g2.setFont(new Font("Monospaced", Font.BOLD, 22));
+        if (pixelFont != null) {
+            g2.setFont(pixelFont.deriveFont(Font.BOLD, 22));
+        } else {
+            g2.setFont(new Font("Monospaced", Font.BOLD, 22));
+        }
         g2.setColor(new Color(0, 255, 200));
-        g2.drawString(timeLeft + "s", hudX + 150, hudY + 86);
+        g2.drawString(survivalTime + "s", hudX + 160, hudY + 91);
 
         int badgeW = 100;
         int badgeH = 50;
@@ -863,10 +900,18 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         g2.setColor(Color.WHITE);
         g2.drawRect(badgeX, badgeY, badgeW, badgeH);
 
-        g2.setFont(new Font("Monospaced", Font.BOLD, 12));
+        if (pixelFont != null) {
+            g2.setFont(pixelFont.deriveFont(Font.BOLD, 12));
+        } else {
+            g2.setFont(new Font("Monospaced", Font.BOLD, 12));
+        }
         g2.drawString("LEVEL", badgeX + (badgeW - g2.getFontMetrics().stringWidth("LEVEL")) / 2, badgeY + 18);
 
-        g2.setFont(new Font("Monospaced", Font.BOLD, 24));
+        if (pixelFont != null) {
+            g2.setFont(pixelFont.deriveFont(Font.BOLD, 24));
+        } else {
+            g2.setFont(new Font("Monospaced", Font.BOLD, 24));
+        }
         String lvlStr = String.valueOf(currentLevel);
         g2.drawString(lvlStr, badgeX + (badgeW - g2.getFontMetrics().stringWidth(lvlStr)) / 2, badgeY + 42);
 
@@ -896,36 +941,57 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
             // 2. SUBTEXT
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Monospaced", Font.PLAIN, 22));
+            if (pixelFont != null) {
+                g2.setFont(pixelFont.deriveFont(Font.PLAIN, 22));
+            } else {
+                g2.setFont(new Font("Monospaced", Font.PLAIN, 22));
+            }
             String subText = "Yahh, telat submit tugas";
             g2.drawString(subText, (panelW - g2.getFontMetrics().stringWidth(subText)) / 2, currentY);
             currentY += 50;
 
             // 3. MINI LEADERBOARD
             if (cachedTopScores != null && !cachedTopScores.isEmpty()) {
-                g2.setFont(new Font("Monospaced", Font.BOLD, 20));
+                if (pixelFont != null) {
+                    g2.setFont(pixelFont.deriveFont(Font.BOLD, 20));
+                } else {
+                    g2.setFont(new Font("Monospaced", Font.BOLD, 20));
+                }
                 g2.setColor(Color.YELLOW);
                 String lbTitle = "TOP 5 SURVIVORS";
                 g2.drawString(lbTitle, (panelW - g2.getFontMetrics().stringWidth(lbTitle)) / 2, currentY);
                 currentY += 30;
 
-                g2.setFont(new Font("Monospaced", Font.PLAIN, 16));
+                if (pixelFont != null) {
+                    g2.setFont(pixelFont.deriveFont(Font.PLAIN, 16));
+                } else {
+                    g2.setFont(new Font("Monospaced", Font.PLAIN, 16));
+                }
                 g2.setColor(Color.WHITE);
                 for (int i = 0; i < cachedTopScores.size(); i++) {
                     Map<String, Object> row = cachedTopScores.get(i);
                     String pName = (String) row.get("player_name");
                     int pScore = ((Number) row.get("score")).intValue();
-                    String line = (i + 1) + ". " + String.format("%-15s", pName) + " - " + pScore + " pts";
-                    g2.drawString(line, (panelW - g2.getFontMetrics().stringWidth(line)) / 2, currentY + (i * 25));
+                    String line = String.format("%d. %-15s %10d", i + 1, pName, pScore);
+                    g2.drawString(line, (panelW - g2.getFontMetrics().stringWidth(line)) / 2, currentY);
+                    currentY += 25;
                 }
+                currentY += 20;
             }
 
-            // 4. BUTTONS
-            if (retryImg != null) {
-                g2.drawImage(retryImg, btnRetry.x, btnRetry.y, null);
-            }
-            if (menuImg != null) {
-                g2.drawImage(menuImg, btnMenu.x, btnMenu.y, null);
+            // 4. BUTTONS (RETRY | MENU)
+            if (btnRetry != null && btnMenu != null) {
+                if (retryImg != null) {
+                    g2.drawImage(retryImg, btnRetry.x, btnRetry.y, null);
+                } else {
+                    drawButton(g2, "RETRY", btnRetry, new Color(40, 160, 40));
+                }
+
+                if (menuImg != null) {
+                    g2.drawImage(menuImg, btnMenu.x, btnMenu.y, null);
+                } else {
+                    drawButton(g2, "MENU", btnMenu, new Color(180, 100, 40));
+                }
             }
         }
     }

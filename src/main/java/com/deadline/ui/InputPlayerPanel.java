@@ -45,6 +45,9 @@ public class InputPlayerPanel extends JPanel {
 
     private Font pixelFont;
 
+    /**
+     * 
+     */
     public InputPlayerPanel() {
         loadPixelFont();
         setLayout(null);

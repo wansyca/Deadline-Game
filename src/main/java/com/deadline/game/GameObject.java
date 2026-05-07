@@ -49,4 +49,9 @@ public abstract class GameObject {
     public int getHeight() {
         return height;
     }
+
+    public void update1() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'update1'");
+    }
 }
