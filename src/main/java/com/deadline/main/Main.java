@@ -63,7 +63,7 @@ public class Main {
 
             // 🎵 Putar musik menu jika sedang di Dashboard atau Input Player
             if (pageName.equals(DASHBOARD) || pageName.equals(INPUT_PLAYER)) {
-                SoundManager.playBackgroundMusic("/sound/Midnight Focus Loop.wav", -5.0f);
+                SoundManager.playBackgroundMusic("/assets/audio/bgm/Midnight Focus Loop.wav", -5.0f);
             }
 
             // Fokus ke GamePanel biar input keyboard jalan

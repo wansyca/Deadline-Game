@@ -52,9 +52,9 @@ public class SplashScreen extends JPanel {
 
     private void loadLogo() {
         try {
-            logo = ImageIO.read(getClass().getResourceAsStream("/assets/logo.png"));
+            logo = ImageIO.read(getClass().getResourceAsStream("/assets/ui/panels/logo.png"));
         } catch (Exception e) {
-            System.err.println("❌ Error loading splash logo: assets/logo.png");
+            System.err.println("❌ Error loading splash logo: /assets/ui/panels/logo.png");
         }
     }
 

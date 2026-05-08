@@ -27,15 +27,15 @@ public class DashboardPanel extends JPanel {
         setLayout(null);
 
         // LOAD ASSETS
-        bgImage = loadImage("/assets/bg.png");
-        titleImage = loadImage("/assets/judul.png");
-        taglineImage = loadImage("/assets/tagline.png");
+        bgImage = loadImage("/assets/ui/panels/bg.png");
+        titleImage = loadImage("/assets/ui/panels/judul.png");
+        taglineImage = loadImage("/assets/ui/panels/tagline.png");
 
         // BUTTONS (Main Menu size: 250x80)
         start = new ImageButton(
-            "/assets/buttons/btn_start_normal.png",
-            "/assets/buttons/btn_start_hover.png",
-            "/assets/buttons/btn_start_pressed.png",
+            "/assets/ui/buttons/btn_start_normal.png",
+            "/assets/ui/buttons/btn_start_hover.png",
+            "/assets/ui/buttons/btn_start_pressed.png",
             BTN_WIDTH, BTN_HEIGHT
         );
         start.addActionListener(e -> {
@@ -45,9 +45,9 @@ public class DashboardPanel extends JPanel {
         add(start);
 
         leaderboard = new ImageButton(
-            "/assets/buttons/btn_laeder_normal.png",
-            "/assets/buttons/btn_laeder_hover.png",
-            "/assets/buttons/btn_laeder_pressed.png",
+            "/assets/ui/buttons/btn_laeder_normal.png",
+            "/assets/ui/buttons/btn_laeder_hover.png",
+            "/assets/ui/buttons/btn_laeder_pressed.png",
             BTN_WIDTH, BTN_HEIGHT
         );
         leaderboard.addActionListener(e -> {
@@ -57,9 +57,9 @@ public class DashboardPanel extends JPanel {
         add(leaderboard);
 
         exit = new ImageButton(
-            "/assets/buttons/btn_exit_normal.png",
-            "/assets/buttons/btn_exit_hover.png",
-            "/assets/buttons/btn_exit_pressed.png",
+            "/assets/ui/buttons/btn_exit_normal.png",
+            "/assets/ui/buttons/btn_exit_hover.png",
+            "/assets/ui/buttons/btn_exit_pressed.png",
             BTN_WIDTH, BTN_HEIGHT
         );
         exit.addActionListener(e -> {

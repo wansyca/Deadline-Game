@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.util.List;
 import javax.imageio.ImageIO;
 
 
@@ -21,8 +22,8 @@ public class Lecturer extends GameObject {
     private boolean isMoving = false;
 
     // Size configuration
-    private static final int SCALE = 6;
-    private static final int TILE_SIZE = 16 * SCALE; // 96x96
+    private static final int SCALE = 4;
+    private static final int TILE_SIZE = 16 * SCALE; // 64x64
 
     public Lecturer(int x, int y, double speed, int type) {
         super(x, y, TILE_SIZE, TILE_SIZE);
@@ -43,27 +44,26 @@ public class Lecturer extends GameObject {
         }
 
         try {
-            String path = "/assets/player/" + folder + "/";
-            up1 = ImageIO.read(getClass().getResourceAsStream(path + "up_1.png"));
-            down1 = ImageIO.read(getClass().getResourceAsStream(path + "down_1.png"));
-            right1 = ImageIO.read(getClass().getResourceAsStream(path + "right_1.png"));
+            String basePath = "/assets/dosen/" + folder + "/";
+            up1 = ImageIO.read(getClass().getResourceAsStream(basePath + "up/up_1.png"));
+            up2 = ImageIO.read(getClass().getResourceAsStream(basePath + "up/up_2.png"));
+            down1 = ImageIO.read(getClass().getResourceAsStream(basePath + "down/down_1.png"));
+            down2 = ImageIO.read(getClass().getResourceAsStream(basePath + "down/down_2.png"));
+            left1 = ImageIO.read(getClass().getResourceAsStream(basePath + "left/left_1.png"));
+            left2 = ImageIO.read(getClass().getResourceAsStream(basePath + "left/left_2.png"));
+            right1 = ImageIO.read(getClass().getResourceAsStream(basePath + "right/right_1.png"));
+            right2 = ImageIO.read(getClass().getResourceAsStream(basePath + "right/right_2.png"));
             
-            // Fallback for frame 2: Use frame 1 if frame 2 is missing
-            try { up2 = ImageIO.read(getClass().getResourceAsStream(path + "up_2.png")); } catch(Exception e) { up2 = up1; }
-            try { down2 = ImageIO.read(getClass().getResourceAsStream(path + "down_2.png")); } catch(Exception e) { down2 = down1; }
-            try { right2 = ImageIO.read(getClass().getResourceAsStream(path + "right_2.png")); } catch(Exception e) { right2 = right1; }
-            
-            if (up2 == null) up2 = up1;
-            if (down2 == null) down2 = down1;
-            if (right2 == null) right2 = right1;
-
-            // Auto-flip for Left consistency
-            left1 = flipImage(right1);
-            left2 = flipImage(right2);
-            
-            System.out.println("✅ Loaded and fixed assets for Lecturer: " + folder);
+            System.out.println("✅ Loaded assets for Lecturer: " + folder);
         } catch (Exception e) {
-            System.err.println("❌ Critical error loading lecturer assets: " + folder);
+            System.err.println("❌ Error loading lecturer assets: " + folder);
+            // Fallback to flipping if needed
+            try {
+                if (right1 != null) {
+                    left1 = flipImage(right1);
+                    left2 = flipImage(right2);
+                }
+            } catch (Exception e2) {}
         }
     }
 
@@ -97,23 +97,88 @@ public class Lecturer extends GameObject {
         // The real problem is update1() vs update().
     }
 
-    public void updateAI(Player player, java.util.List<Lecturer> lecturers) {
+    private List<int[]> currentPath;
+    private int pathTick = 0;
+    private PathFinder pathFinder;
+
+    public void setPathFinder(PathFinder pf) {
+        this.pathFinder = pf;
+    }
+
+    public void updateAI(Player player, java.util.List<Lecturer> lecturers, List<Rectangle> obstacles) {
         double dx = player.getX() - exactX;
         double dy = player.getY() - exactY;
         double dist = Math.sqrt(dx * dx + dy * dy);
 
+        // Pathfinding update every 15 ticks (Faster response)
+        pathTick++;
+        if (pathTick % 15 == 0 || currentPath == null || currentPath.isEmpty()) {
+            if (pathFinder != null) {
+                int startR = (int) (exactY + height / 2) / 64;
+                int startC = (int) (exactX + width / 2) / 64;
+                int targetR = (int) (player.getY() + player.getHeight() / 2) / 64;
+                int targetC = (int) (player.getX() + player.getWidth() / 2) / 64;
+                
+                currentPath = pathFinder.findPath(startR, startC, targetR, targetC);
+            }
+        }
+
         double targetDx = 0;
         double targetDy = 0;
 
-        if (dist > 2) {
-            targetDx = dx / dist;
-            targetDy = dy / dist;
+        // Increased detection radius for CHASE
+        if (dist < 800 && currentPath != null && !currentPath.isEmpty()) { 
+            int[] nextStep = currentPath.get(0);
+            if (currentPath.size() > 1) {
+                double stepX = nextStep[1] * 64 + 32;
+                double stepY = nextStep[0] * 64 + 32;
+                if (Math.abs(exactX + width/2 - stepX) < 15 && Math.abs(exactY + height/2 - stepY) < 15) {
+                    currentPath.remove(0);
+                    if (!currentPath.isEmpty()) nextStep = currentPath.get(0);
+                }
+            }
+            
+            double stepX = nextStep[1] * 64 + 32;
+            double stepY = nextStep[0] * 64 + 32;
+            double angle = Math.atan2(stepY - (exactY + height/2), stepX - (exactX + width/2));
+            targetDx = Math.cos(angle);
+            targetDy = Math.sin(angle);
             isMoving = true;
+            
+            // Speed up when chasing
+            speed = 5.0;
+        } else { // PATROL (Persistent)
+            if (Math.random() < 0.05 || targetDx == 0 && targetDy == 0) {
+                double angle = Math.random() * Math.PI * 2;
+                targetDx = Math.cos(angle);
+                targetDy = Math.sin(angle);
+            }
+            isMoving = true;
+            speed = 2.5;
+        }
 
-            if (Math.abs(dx) >= Math.abs(dy)) {
-                direction = (dx > 0) ? "right" : "left";
+        double nextX = exactX + targetDx * speed;
+        double nextY = exactY + targetDy * speed;
+
+        // Improved Collision check with sliding
+        Rectangle nextBoundsX = new Rectangle((int)nextX + 10, (int)exactY + 20, width - 20, height - 24);
+        Rectangle nextBoundsY = new Rectangle((int)exactX + 10, (int)nextY + 20, width - 20, height - 24);
+        
+        boolean collisionX = false;
+        boolean collisionY = false;
+        for (Rectangle r : obstacles) {
+            if (nextBoundsX.intersects(r)) collisionX = true;
+            if (nextBoundsY.intersects(r)) collisionY = true;
+        }
+
+        if (!collisionX) exactX = nextX;
+        if (!collisionY) exactY = nextY;
+
+        if (isMoving) {
+            if (Math.abs(targetDx) >= Math.abs(targetDy)) {
+                direction = (targetDx > 0) ? "right" : "left";
             } else {
-                direction = (dy > 0) ? "down" : "up";
+                direction = (targetDy > 0) ? "down" : "up";
             }
 
             spriteCounter++;
@@ -122,25 +187,8 @@ public class Lecturer extends GameObject {
                 spriteCounter = 0;
             }
         } else {
-            isMoving = false;
             spriteNum = 1;
             spriteCounter = 0;
-        }
-
-        exactX += targetDx * speed;
-        exactY += targetDy * speed;
-
-        // Separation
-        for (Lecturer other : lecturers) {
-            if (other != this) {
-                double diffX = this.exactX - other.exactX;
-                double diffY = this.exactY - other.exactY;
-                double distance = Math.sqrt(diffX * diffX + diffY * diffY);
-                if (distance < 70) {
-                    exactX += diffX * 0.05;
-                    exactY += diffY * 0.05;
-                }
-            }
         }
 
         this.x = (int) Math.round(exactX);
@@ -161,8 +209,8 @@ public class Lecturer extends GameObject {
 
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
-        // NORMALIZE SIZE: Scale everything to 96px height regardless of PNG resolution
-        int targetHeight = 96;
+        // NORMALIZE SIZE: Scale everything to 64px height regardless of PNG resolution
+        int targetHeight = 64;
         int imgH = (image != null) ? image.getHeight() : 16;
         int imgW = (image != null) ? image.getWidth() : 16;
         
@@ -189,7 +237,7 @@ public class Lecturer extends GameObject {
     }
 
     public Rectangle getBounds() {
-        return new Rectangle(x + 20, y + 40, width - 40, height - 44);
+        return new Rectangle(x + 15, y + 30, width - 30, height - 34);
     }
 
     public boolean intersects(Player p) {

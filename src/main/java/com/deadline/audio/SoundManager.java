@@ -13,15 +13,15 @@ import javax.sound.sampled.LineEvent;
  */
 public class SoundManager {
     public static void playClickSound() {
-        playSound("/assets/sound/click.wav", "click sound", -15.0f);
+        playSound("/assets/audio/sfx/click.wav", "click sound", -15.0f);
     }
 
     public static void playBookSound() {
-        playSound("/assets/sound/collect.wav", "book collection sound", 0.0f);
+        playSound("/assets/audio/sfx/collect.wav", "book collection sound", 0.0f);
     }
 
     public static void playGameOverSound() {
-        playSound("/assets/sound/Gameover.wav", "game over sound", 0.0f);
+        playSound("/assets/audio/sfx/Gameover.wav", "game over sound", 0.0f);
     }
 
     private static Clip backgroundClip;

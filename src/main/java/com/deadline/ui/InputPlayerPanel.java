@@ -54,8 +54,8 @@ public class InputPlayerPanel extends JPanel {
         setOpaque(false);
 
         // LOAD ASSET
-        bgImage = loadImage("/assets/bg.png");
-        titleAsset = loadImage("/assets/player_regis.png");
+        bgImage = loadImage("/assets/ui/panels/bg.png");
+        titleAsset = loadImage("/assets/ui/panels/player_regis.png");
 
         title = new JLabel() {
             @Override
@@ -173,9 +173,9 @@ public class InputPlayerPanel extends JPanel {
 
         // BUTTON BACK
         backBtn = new ImageButton(
-                "/assets/buttons/btn_back_normal.png",
-                "/assets/buttons/btn_back_hover.png",
-                "/assets/buttons/btn_back_pressed.png",
+                "/assets/ui/buttons/btn_back_normal.png",
+                "/assets/ui/buttons/btn_back_hover.png",
+                "/assets/ui/buttons/btn_back_pressed.png",
                 BTN_WIDTH, BTN_HEIGHT);
         backBtn.addActionListener(e -> {
             SoundManager.playClickSound();
@@ -185,9 +185,9 @@ public class InputPlayerPanel extends JPanel {
 
         // BUTTON NEXT
         playBtn = new ImageButton(
-                "/assets/buttons/btn_next_normal.png",
-                "/assets/buttons/btn_next_hover.png",
-                "/assets/buttons/btn_next_pressed.png",
+                "/assets/ui/buttons/btn_next_normal.png",
+                "/assets/ui/buttons/btn_next_hover.png",
+                "/assets/ui/buttons/btn_next_pressed.png",
                 BTN_WIDTH, BTN_HEIGHT);
         playBtn.addActionListener(e -> {
             SoundManager.playClickSound();
@@ -226,12 +226,12 @@ public class InputPlayerPanel extends JPanel {
 
     private void loadPixelFont() {
         try {
-            java.io.InputStream is = getClass().getResourceAsStream("/assets/font/pixel.ttf");
+            java.io.InputStream is = getClass().getResourceAsStream("/assets/ui/fonts/pixel.ttf");
             if (is != null) {
                 pixelFont = Font.createFont(Font.TRUETYPE_FONT, is);
                 System.out.println("✅ Pixel font loaded successfully!");
             } else {
-                System.err.println("❌ Font file not found at /assets/font/pixel.ttf, using Monospaced fallback.");
+                System.err.println("❌ Font file not found at /assets/ui/fonts/pixel.ttf, using Monospaced fallback.");
                 pixelFont = new Font("Monospaced", Font.BOLD, 20);
             }
         } catch (Exception e) {
@@ -253,8 +253,8 @@ public class InputPlayerPanel extends JPanel {
     }
 
     private void setupAvatarButtons() {
-        avatarButtons.add(new AvatarButton("/assets/avatar_cowo.png", "cowo"));
-        avatarButtons.add(new AvatarButton("/assets/avatar_cewe.png", "cewe"));
+        avatarButtons.add(new AvatarButton("/assets/ui/icons/avatar_cowo.png", "cowo"));
+        avatarButtons.add(new AvatarButton("/assets/ui/icons/avatar_cewe.png", "cewe"));
 
         for (AvatarButton btn : avatarButtons) {
             btn.addMouseListener(new MouseAdapter() {

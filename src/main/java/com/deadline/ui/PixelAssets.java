@@ -1,460 +1,124 @@
 package com.deadline.ui;
 
-import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Image;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.util.HashMap;
-import java.util.Map;
-
+import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
 public class PixelAssets {
 
-        private static final Map<Character, Color> PALETTE = new HashMap<>();
+    // TILES - FLOOR
+    public static BufferedImage imgFloorWhite;
+    public static BufferedImage imgFloorDark;
+    public static BufferedImage imgFloorLab;
+    public static BufferedImage imgFloorLibrary;
 
-        static {
-                // Transparent
-                PALETTE.put(' ', new Color(0, 0, 0, 0));
-                // Skin tones
-                PALETTE.put('S', new Color(255, 205, 148)); // Skin
-                PALETTE.put('s', new Color(234, 168, 114)); // Skin dark
-                // Hair
-                PALETTE.put('H', new Color(60, 40, 20)); // Dark Hair
-                PALETTE.put('h', new Color(150, 80, 20)); // Brown Hair
-                PALETTE.put('W', new Color(200, 200, 200)); // White Hair (Tua)
-                // Clothes
-                PALETTE.put('C', new Color(40, 100, 200)); // Blue Shirt (Player)
-                PALETTE.put('c', new Color(20, 60, 150)); // Dark Blue Shirt
-                PALETTE.put('D', new Color(180, 40, 40)); // Red Shirt (Dosen)
-                PALETTE.put('d', new Color(120, 20, 20)); // Dark Red
-                PALETTE.put('P', new Color(50, 50, 50)); // Pants Dark
-                PALETTE.put('p', new Color(30, 30, 30)); // Pants Darker
-                // Shoes
-                PALETTE.put('B', new Color(20, 20, 20)); // Black Shoes
-                // Nature (Grass/Trees)
-                PALETTE.put('G', new Color(85, 170, 85)); // Grass Light
-                PALETTE.put('g', new Color(60, 140, 60)); // Grass Dark
-                PALETTE.put('T', new Color(40, 100, 40)); // Tree Green
-                PALETTE.put('t', new Color(20, 80, 20)); // Tree Dark Green
-                PALETTE.put('R', new Color(100, 70, 40)); // Trunk
-                PALETTE.put('F', new Color(240, 100, 100)); // Flower
-                // Roads & Buildings
-                PALETTE.put('A', new Color(100, 100, 100)); // Asphalt
-                PALETTE.put('a', new Color(80, 80, 80)); // Asphalt dark
-                PALETTE.put('V', new Color(160, 160, 160)); // Paving
-                PALETTE.put('v', new Color(140, 140, 140)); // Paving dark
-                PALETTE.put('W', new Color(180, 180, 190)); // Wall
-                PALETTE.put('w', new Color(140, 140, 150)); // Wall dark
-                // Items
-                PALETTE.put('K', new Color(44, 62, 80)); // Book Cover
-                PALETTE.put('k', new Color(236, 240, 241)); // Book Pages
-                PALETTE.put('E', new Color(241, 196, 15)); // Book Gold
-                // Furniture
-                PALETTE.put('M', new Color(139, 69, 19)); // Wood Desk
-                PALETTE.put('m', new Color(101, 50, 14)); // Wood Desk Dark
-                PALETTE.put('F', new Color(200, 60, 150)); // Pink Shirt (Cewe)
-                // New Palette for Realism
-                PALETTE.put('U', new Color(255, 255, 255)); // Pure White (Lines)
-                PALETTE.put('Q', new Color(0, 120, 255)); // Water Blue
-                PALETTE.put('q', new Color(0, 80, 200)); // Water Blue Dark
-        }
+    // TILES - WALLS
+    public static BufferedImage imgWallTop;
+    public static BufferedImage imgWallBottom;
+    public static BufferedImage imgWallSide;
+    public static BufferedImage imgWallCenter;
+    public static BufferedImage imgCornerLeft;
+    public static BufferedImage imgCornerRight;
 
-        public static BufferedImage generate(String[] layout, int scale) {
-            return generate(layout, scale, ' ', ' '); // Default
-        }
+    // TILES - DOORS
+    public static BufferedImage imgDoorClass;
+    public static BufferedImage imgDoorLabLibrary;
 
-        public static BufferedImage generate(String[] layout, int scale, char shirtTarget, char shirtReplace) {
-                int w = layout[0].length();
-                int h = layout.length;
-                BufferedImage img = new BufferedImage(w * scale, h * scale, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g2 = img.createGraphics();
+    // TILES - DECORATIONS
+    public static BufferedImage imgPlant;
+    public static BufferedImage imgVending;
+    public static BufferedImage imgBoard;
+    public static BufferedImage imgLamp;
 
-                for (int y = 0; y < h; y++) {
-                        String row = layout[y];
-                        for (int x = 0; x < w; x++) {
-                                char c = row.charAt(x);
-                                if (c == shirtTarget && shirtReplace != ' ') c = shirtReplace;
-                                
-                                Color col = PALETTE.getOrDefault(c, new Color(0, 0, 0, 0));
-                                g2.setColor(col);
-                                g2.fillRect(x * scale, y * scale, scale, scale);
-                        }
-                }
-                g2.dispose();
-                return img;
-        }
+    // FURNITURE
+    public static BufferedImage imgMeja;
+    public static BufferedImage imgKursi;
+    public static BufferedImage imgMejaLab;
+    public static BufferedImage imgRakBuku;
+    public static BufferedImage imgBangkuLobby;
+    public static BufferedImage imgMejaDosen;
 
-        // ============================================
-        // PLAYER ANIMATIONS (16x16)
-        // ============================================
-        // DOWN
-        public static final String[] PLAYER_DOWN_1 = {
-            "      HHHH      ", "     HSSSSHH    ", "     HSSSSHH    ", "      SSSS      ",
-            "      CCCC      ", "     CCCCCC     ", "    SCCCCCC S   ", "    S C  C  S   ",
-            "      P  P      ", "      P  P      ", "     PP  PP     ", "     PP  PP     ",
-            "     BB  BB     ", "                ", "                ", "                "
-        };
-        public static final String[] PLAYER_DOWN_2 = {
-            "      HHHH      ", "     HSSSSHH    ", "     HSSSSHH    ", "      SSSS      ",
-            "      CCCC      ", "     CCCCCC     ", "    SCCCCCC S   ", "    S C  C      ",
-            "      P  P      ", "      PP P      ", "      P PP      ", "      P  BB     ",
-            "     BB         ", "                ", "                ", "                "
-        };
-        // UP
-        public static final String[] PLAYER_UP_1 = {
-            "      HHHH      ", "     HHHHHHH    ", "     HHHHHHH    ", "      HHHH      ",
-            "      CCCC      ", "     CCCCCC     ", "     CCCCCC     ", "      C  C      ",
-            "      P  P      ", "      P  P      ", "     PP  PP     ", "     PP  PP     ",
-            "     BB  BB     ", "                ", "                ", "                "
-        };
-        public static final String[] PLAYER_UP_2 = {
-            "      HHHH      ", "     HHHHHHH    ", "     HHHHHHH    ", "      HHHH      ",
-            "      CCCC      ", "     CCCCCC     ", "     CCCCCC     ", "      C  C      ",
-            "      P  P      ", "      PP P      ", "      P PP      ", "      P  BB     ",
-            "     BB         ", "                ", "                ", "                "
-        };
-        // RIGHT
-        public static final String[] PLAYER_RIGHT_1 = { // Left leg forward, Right arm back
-            "      HHHH      ", "     HSSSSHH    ", "     HSSSSHH    ", "      SSSS      ",
-            "      CCCC      ", "     CCCCCC     ", "     CCCCCCS    ", "     CC  C      ",
-            "     P   P      ", "     P   P      ", "     P   PP     ", "     P    BB    ",
-            "    BB          ", "                ", "                ", "                "
-        };
-        public static final String[] PLAYER_RIGHT_2 = { // Right leg forward, Left arm back
-            "      HHHH      ", "     HSSSSHH    ", "     HSSSSHH    ", "      SSSS      ",
-            "      CCCC      ", "     CCCCCC     ", "    SCCCCCC     ", "      C  CC     ",
-            "      P  P      ", "      P  P      ", "     PP  P      ", "    BB   P      ",
-            "         BB     ", "                ", "                ", "                "
-        };
-        // LEFT (Mirrored Right)
-        public static final String[] PLAYER_LEFT_1 = mirror(PLAYER_RIGHT_1);
-        public static final String[] PLAYER_LEFT_2 = mirror(PLAYER_RIGHT_2);
+    // ITEMS
+    public static BufferedImage imgBook;
 
-        private static String[] mirror(String[] layout) {
-            String[] result = new String[layout.length];
-            for(int i=0; i<layout.length; i++) {
-                result[i] = new StringBuilder(layout[i]).reverse().toString();
+    // ENTITIES
+    public static BufferedImage imgLecturerIdle;
+
+    public static void loadAll() {
+        // Load Tiles
+        imgFloorWhite = load("/assets/tiles/floor/floor_white.png");
+        imgFloorDark = load("/assets/tiles/floor/floor_dark.png");
+        imgFloorLab = load("/assets/tiles/floor/floor_lab.png");
+        imgFloorLibrary = load("/assets/tiles/floor/floor_library.png");
+
+        imgWallTop = load("/assets/tiles/walls/wal_top.png");
+        imgWallBottom = load("/assets/tiles/walls/wal_top.png");
+        imgWallSide = load("/assets/tiles/walls/wall_side.png");
+        imgWallCenter = load("/assets/tiles/walls/wall_center.png");
+        imgCornerLeft = load("/assets/tiles/walls/corner_left.png");
+        imgCornerRight = load("/assets/tiles/walls/wall_right.png"); // Fallback for corner_right
+
+        imgDoorClass = load("/assets/tiles/doors/door.png");
+        imgDoorLabLibrary = load("/assets/tiles/doors/door_lab&library.png");
+
+        imgPlant = load("/assets/tiles/decorations/plant.png");
+        imgVending = load("/assets/tiles/decorations/vending.png");
+        imgBoard = load("/assets/tiles/decorations/board.png");
+        imgLamp = load("/assets/tiles/decorations/lamp.png");
+
+        // Load Furniture
+        imgMeja = load("/assets/furniture/classroom/meja.png");
+        imgKursi = load("/assets/furniture/classroom/kursi.png");
+        imgMejaLab = load("/assets/furniture/lab/meja_lab.png");
+        imgRakBuku = load("/assets/furniture/library/rak_buku.png");
+        imgBangkuLobby = load("/assets/furniture/lobby/bangku_lobi.png");
+        imgMejaDosen = load("/assets/furniture/office/meja_dosen.png");
+
+        // Load Items
+        imgBook = load("/assets/items/books/book.png");
+
+        // Entities
+        imgLecturerIdle = load("/assets/dosen/dosen_tua/down_1.png");
+    }
+
+    private static BufferedImage load(String path) {
+        try {
+            java.net.URL url = PixelAssets.class.getResource(path);
+            if (url == null) {
+                System.err.println("❌ Could not find asset: " + path);
+                return createPlaceholder();
             }
-            return result;
+            return ImageIO.read(url);
+        } catch (Exception e) {
+            System.err.println("❌ Error loading asset: " + path);
+            return createPlaceholder();
         }
+    }
 
-        // LECTURER (Similar but with Shirt 'D' for Dosen)
-        public static final String[] LECT_DOWN_1 = replace(PLAYER_DOWN_1, 'C', 'D');
-        public static final String[] LECT_DOWN_2 = replace(PLAYER_DOWN_2, 'C', 'D');
-        public static final String[] LECT_UP_1 = replace(PLAYER_UP_1, 'C', 'D');
-        public static final String[] LECT_UP_2 = replace(PLAYER_UP_2, 'C', 'D');
-        public static final String[] LECT_RIGHT_1 = replace(PLAYER_RIGHT_1, 'C', 'D');
-        public static final String[] LECT_RIGHT_2 = replace(PLAYER_RIGHT_2, 'C', 'D');
-        public static final String[] LECT_LEFT_1 = mirror(LECT_RIGHT_1);
-        public static final String[] LECT_LEFT_2 = mirror(LECT_RIGHT_2);
+    private static BufferedImage createPlaceholder() {
+        BufferedImage bi = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = bi.createGraphics();
+        g2.setColor(java.awt.Color.MAGENTA);
+        g2.fillRect(0, 0, 16, 16);
+        g2.dispose();
+        return bi;
+    }
 
-        private static String[] replace(String[] layout, char oldChar, char newChar) {
-            String[] result = new String[layout.length];
-            for(int i=0; i<layout.length; i++) {
-                result[i] = layout[i].replace(oldChar, newChar);
-            }
-            return result;
+    public static BufferedImage loadAndScale(String path, int targetW, int targetH) {
+        try {
+            java.net.URL url = PixelAssets.class.getResource(path);
+            if (url == null) return createPlaceholder();
+            ImageIcon icon = new ImageIcon(url);
+            BufferedImage bi = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = bi.createGraphics();
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+            g2.drawImage(icon.getImage(), 0, 0, targetW, targetH, null);
+            g2.dispose();
+            return bi;
+        } catch (Exception e) {
+            return createPlaceholder();
         }
-
-        // ============================================
-        // MAP TILES (16x16) - WILL BE SCALED TO 64x64 IN GAME
-        // ============================================
-        public static final String[] TILE_GRASS = {
-                        "GgGGgGGGgGGgGGGG",
-                        "GGGGGGGGGGGGGGGG",
-                        "GGgGGgGGGGgGGGGg",
-                        "GGGGGGGGGGGGGGGG",
-                        "gGGGGgGGgGGgGGgG",
-                        "GGGGGGGGGGGGGGGG",
-                        "GGgGGGGgGGGGgGGG",
-                        "GGGGGGGGGGGGGGGG",
-                        "GGGGgGGGGgGGGGgG",
-                        "GgGGGGGGGGGGgGGG",
-                        "GGGGGGgGGGGGGGGG",
-                        "GGgGGGGGGgGGGGgG",
-                        "GGGGGGGGGGGGGGGG",
-                        "gGGgGGGGgGGGGgGG",
-                        "GGGGGGGGGGGGGGGG",
-                        "GGGGgGGgGGgGGgGG"
-        };
-
-        public static final String[] TILE_GRASS_FLOWER = {
-                        "GgGGgGGGgGGgGGGG",
-                        "GGGFGGGGGGGGGGGG",
-                        "GGgGGgGGGGgGGGGg",
-                        "GGGGGGGGGGGGGFGG",
-                        "gGGGGgGGgGGgGGgG",
-                        "GGGGGGGGGGGGGGGG",
-                        "GGgGGGGgGGGGgGGG",
-                        "GGGGGGGFGGGGGGGG",
-                        "GGGGgGGGGgGGGGgG",
-                        "GgGGGGGGGGGGgGGG",
-                        "GGGGGGgGGGGGGGGG",
-                        "GGgGGGGGGgGGGGgG",
-                        "GGGGGGGFGGGGGGGG",
-                        "gGGgGGGGgGGGGgGG",
-                        "GGGFGGGGGGGGGGGG",
-                        "GGGGgGGgGGgGGgGG"
-        };
-
-        public static final String[] TILE_ROAD = {
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA",
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA",
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA",
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA",
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA",
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA",
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA",
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA"
-        };
-
-        public static final String[] TILE_ROAD_MARK = {
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA",
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA",
-                        "AaAaAEEEEEAaAaAa",
-                        "aAaAaEEEEEaAaAaA",
-                        "AaAaAEEEEEAaAaAa",
-                        "aAaAaEEEEEaAaAaA",
-                        "AaAaAEEEEEAaAaAa",
-                        "aAaAaEEEEEaAaAaA",
-                        "AaAaAEEEEEAaAaAa",
-                        "aAaAaEEEEEaAaAaA",
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA",
-                        "AaAaAaAaAaAaAaAa",
-                        "aAaAaAaAaAaAaAaA"
-        };
-
-        public static final String[] TILE_PAVING = {
-                        "VvVvVvVvVvVvVvVv",
-                        "vVvVvVvVvVvVvVvV",
-                        "VvVvVvVvVvVvVvVv",
-                        "vVvVvVvVvVvVvVvV",
-                        "VvVvVvVvVvVvVvVv",
-                        "vVvVvVvVvVvVvVvV",
-                        "VvVvVvVvVvVvVvVv",
-                        "vVvVvVvVvVvVvVvV",
-                        "VvVvVvVvVvVvVvVv",
-                        "vVvVvVvVvVvVvVvV",
-                        "VvVvVvVvVvVvVvVv",
-                        "vVvVvVvVvVvVvVvV",
-                        "VvVvVvVvVvVvVvVv",
-                        "vVvVvVvVvVvVvVvV",
-                        "VvVvVvVvVvVvVvVv",
-                        "vVvVvVvVvVvVvVvV"
-        };
-
-        public static final String[] TILE_FLOOR = {
-                        "WwWwWwWwWwWwWwWw",
-                        "wWwWwWwWwWwWwWwW",
-                        "WwWwWwWwWwWwWwWw",
-                        "wWwWwWwWwWwWwWwW",
-                        "WwWwWwWwWwWwWwWw",
-                        "wWwWwWwWwWwWwWwW",
-                        "WwWwWwWwWwWwWwWw",
-                        "wWwWwWwWwWwWwWwW",
-                        "WwWwWwWwWwWwWwWw",
-                        "wWwWwWwWwWwWwWwW",
-                        "WwWwWwWwWwWwWwWw",
-                        "wWwWwWwWwWwWwWwW",
-                        "WwWwWwWwWwWwWwWw",
-                        "wWwWwWwWwWwWwWwW",
-                        "WwWwWwWwWwWwWwWw",
-                        "wWwWwWwWwWwWwWwW"
-        };
-
-        public static final String[] TILE_WHITE_LINE = {
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU",
-                        "UUUUUUUUUUUUUUUU"
-        };
-
-        public static final String[] FOUNTAIN = {
-                        "      QQQQ      ",
-                        "    QQqqqqQQ    ",
-                        "   QqqqqqqqqQ   ",
-                        "  QqqqqQQqqqqQ  ",
-                        "  QqqqQQQQqqqQ  ",
-                        " QqqqQQQQQQqqqQ ",
-                        " QqqQQQQQQQQqqQ ",
-                        " QqqQQQQQQQQqqQ ",
-                        " QqqqQQQQQQqqqQ ",
-                        "  QqqqQQQQqqqQ  ",
-                        "  QqqqqQQqqqqQ  ",
-                        "   QqqqqqqqqQ   ",
-                        "    QQqqqqQQ    ",
-                        "      QQQQ      ",
-                        "                ",
-                        "                "
-        };
-
-        public static final String[] TREE = {
-                        "      TTTT      ",
-                        "    TTtTTtTT    ",
-                        "   TTtTTtTTtT   ",
-                        "  TTTTtTTtTTTT  ",
-                        "  TtTTtTTtTTtT  ",
-                        " TTTTtTTtTTTtTT ",
-                        " TtTTtTTtTTtTTt ",
-                        "  TTTTtTTtTTTT  ",
-                        "  TtTTtTTtTTtT  ",
-                        "    TTtTTtTT    ",
-                        "      RRRR      ",
-                        "      RRRR      ",
-                        "      RRRR      ",
-                        "     RRRRRR     ",
-                        "                ",
-                        "                "
-        };
-
-        public static final String[] DESK = {
-                        "                ",
-                        "                ",
-                        "   MMMMMMMMMM   ",
-                        "  MmmmmmmmmmMM  ",
-                        "  MMMMMMMMMMMM  ",
-                        "  MmmmmmmmmmMM  ",
-                        "  MMMMMMMMMMMM  ",
-                        "   M        M   ",
-                        "   M        M   ",
-                        "   m        m   ",
-                        "   m        m   ",
-                        "                ",
-                        "                ",
-                        "                ",
-                        "                ",
-                        "                "
-        };
-
-        public static final String[] BOOK = {
-                        "                ",
-                        "                ",
-                        "                ",
-                        "      KKKKK     ",
-                        "     KKKKKk     ",
-                        "     KEEKEk     ",
-                        "     KKKKKk     ",
-                        "     KKKKKk     ",
-                        "     KEEKEk     ",
-                        "     KKKKKk     ",
-                        "      kkkkk     ",
-                        "                ",
-                        "                ",
-                        "                ",
-                        "                ",
-                        "                "
-        };
-
-        /**
-         * Loads player sprites from PNG files.
-         * Maps to directions: front, back, left, right + walking animations.
-         */
-        public static void loadPlayerSprites(String avatarPath) {
-                try {
-                        int size = 64;
-
-                        imgPlayerDepan = loadAndScale(avatarPath, size, size);
-
-                        if (imgPlayerDepan == null) {
-                                imgPlayerDepan = loadAndScale("/assets/bawah.png", size, size);
-                        }
-
-                        imgPlayerBelakang = loadAndScale("/assets/belakang.png", size, size);
-                        imgPlayerKiri = loadAndScale("/assets/kiri.png", size, size);
-                        imgPlayerKanan = loadAndScale("/assets/kanan.png", size, size);
-
-                        imgPlayerJalanKiri = loadAndScale("/assets/jln_kiri.png", size, size);
-                        imgPlayerJalanKanan = loadAndScale("/assets/jln_kanan.png", size, size);
-
-                        System.out.println("Player sprites loaded: " + avatarPath + " (Size: " + size + ")");
-                } catch (Exception e) {
-                        System.err.println("Error loading player sprites: " + e.getMessage());
-                }
-        }
-
-        private static BufferedImage loadAndScale(String path, int targetW, int targetH) {
-                try {
-                        java.net.URL url = PixelAssets.class.getResource(path);
-                        if (url == null)
-                                return null;
-                        ImageIcon icon = new ImageIcon(url);
-                        Image img = icon.getImage();
-                        BufferedImage bi = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
-                        Graphics2D g2 = bi.createGraphics();
-                        g2.drawImage(img, 0, 0, targetW, targetH, null);
-                        g2.dispose();
-                        return bi;
-                } catch (Exception e) {
-                        return null;
-                }
-        }
-
-        // Pre-generated loaded images
-        public static BufferedImage imgPlayerDepan;
-        public static BufferedImage imgPlayerBelakang;
-        public static BufferedImage imgPlayerKiri;
-        public static BufferedImage imgPlayerKanan;
-        public static BufferedImage imgPlayerJalanKiri;
-        public static BufferedImage imgPlayerJalanKanan;
-
-        public static BufferedImage imgLecturerIdle;
-        public static BufferedImage[] imgLecturerWalk;
-
-        public static BufferedImage imgGrass;
-        public static BufferedImage imgGrassFlower;
-        public static BufferedImage imgRoad;
-        public static BufferedImage imgRoadMark;
-        public static BufferedImage imgPaving;
-        public static BufferedImage imgFloor;
-
-        public static BufferedImage imgTree;
-        public static BufferedImage imgDesk;
-        public static BufferedImage imgBook;
-        public static BufferedImage imgWhiteLine;
-        public static BufferedImage imgFountain;
-
-        public static void loadAll() {
-                int charScale = 4; // Scale 16x16 to 64x64 visually per character
-
-                imgLecturerIdle = generate(LECT_DOWN_1, charScale);
-                imgLecturerWalk = new BufferedImage[] { generate(LECT_DOWN_1, charScale),
-                                generate(LECT_DOWN_2, charScale) };
-
-                imgGrass = generate(TILE_GRASS, charScale);
-                imgGrassFlower = generate(TILE_GRASS_FLOWER, charScale);
-                imgRoad = generate(TILE_ROAD, charScale);
-                imgRoadMark = generate(TILE_ROAD_MARK, charScale);
-                imgPaving = generate(TILE_PAVING, charScale);
-                imgFloor = generate(TILE_FLOOR, charScale);
-
-                imgTree = generate(TREE, charScale);
-                imgDesk = generate(DESK, charScale);
-                imgBook = generate(BOOK, charScale);
-                imgWhiteLine = generate(TILE_WHITE_LINE, charScale);
-                imgFountain = generate(FOUNTAIN, charScale);
-        }
+    }
 }

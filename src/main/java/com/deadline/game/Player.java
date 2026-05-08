@@ -29,8 +29,8 @@ public class Player extends GameObject {
     private boolean isMoving = false;
 
     // Size configuration
-    private static final int SCALE = 6;
-    private static final int TILE_SIZE = 16 * SCALE; // 96x96
+    private static final int SCALE = 4;
+    private static final int TILE_SIZE = 16 * SCALE; // 64x64
 
     public Player(int x, int y) {
         super(x, y, TILE_SIZE, TILE_SIZE);
@@ -47,26 +47,28 @@ public class Player extends GameObject {
 
     private void loadImages() {
         try {
-            String path = "/assets/player/" + avatarFolder + "/";
+            String basePath = "/assets/player/" + avatarFolder + "/";
             
-            up1 = ImageIO.read(getClass().getResourceAsStream(path + "up_1.png"));
-            up2 = ImageIO.read(getClass().getResourceAsStream(path + "up_2.png"));
-            down1 = ImageIO.read(getClass().getResourceAsStream(path + "down_1.png"));
-            down2 = ImageIO.read(getClass().getResourceAsStream(path + "down_2.png"));
+            up1 = ImageIO.read(getClass().getResourceAsStream(basePath + "up/up_1.png"));
+            up2 = ImageIO.read(getClass().getResourceAsStream(basePath + "up/up_2.png"));
+            down1 = ImageIO.read(getClass().getResourceAsStream(basePath + "down/down_1.png"));
+            down2 = ImageIO.read(getClass().getResourceAsStream(basePath + "down/down_2.png"));
+            left1 = ImageIO.read(getClass().getResourceAsStream(basePath + "left/left_1.png"));
+            left2 = ImageIO.read(getClass().getResourceAsStream(basePath + "left/left_2.png"));
+            right1 = ImageIO.read(getClass().getResourceAsStream(basePath + "right/right_1.png"));
+            right2 = ImageIO.read(getClass().getResourceAsStream(basePath + "right/right_2.png"));
             
-            // For Right
-            right1 = ImageIO.read(getClass().getResourceAsStream(path + "right_1.png"));
-            right2 = ImageIO.read(getClass().getResourceAsStream(path + "right_2.png"));
-            
-            // For Left: GUARANTEE consistency by flipping the right sprites
-            // This prevents the character from 'changing' if left_1.png is a different asset.
-            left1 = flipImage(right1);
-            left2 = flipImage(right2);
-            
-            System.out.println("✅ Loaded and mirrored assets for: " + avatarFolder);
+            System.out.println("✅ Loaded all assets for: " + avatarFolder);
         } catch (Exception e) {
             System.err.println("❌ Critical error loading assets: " + avatarFolder);
-            e.printStackTrace();
+            // Fallback if left/right are missing
+            try {
+                String path = "/assets/player/" + avatarFolder + "/";
+                if (right1 != null) {
+                    left1 = flipImage(right1);
+                    left2 = flipImage(right2);
+                }
+            } catch (Exception e2) {}
         }
     }
 
@@ -108,7 +110,9 @@ public class Player extends GameObject {
 
     @Override
     public void update() {
-        double speedLimit = 6.0;
+        double speedLimit = 6.0; // Responsive speed
+        double accel = 1.0;     // Instant acceleration
+        double friction = 0.9;  // Quick stop
 
         double inputX = dX;
         double inputY = dY;
@@ -121,32 +125,35 @@ public class Player extends GameObject {
         double targetVelX = inputX * speedLimit;
         double targetVelY = inputY * speedLimit;
 
-        velX += (targetVelX - velX) * 0.3;
-        velY += (targetVelY - velY) * 0.3;
+        // Snappy acceleration and deceleration
+        if (dX != 0) velX = targetVelX;
+        else velX *= friction;
+        
+        if (dY != 0) velY = targetVelY;
+        else velY *= friction;
+
+        // Force stop if velocity is very low
+        if (Math.abs(velX) < 0.1) velX = 0;
+        if (Math.abs(velY) < 0.1) velY = 0;
 
         double speed = Math.sqrt(velX * velX + velY * velY);
-        if (speed > 0.2) { // More sensitive movement detection
+        if (speed > 0) {
             isMoving = true;
-            
-            // Determine direction - prioritizing horizontal for 'right/left' feel
             if (Math.abs(velX) >= Math.abs(velY)) {
                 direction = (velX > 0) ? "right" : "left";
             } else {
                 direction = (velY > 0) ? "down" : "up";
             }
 
-            // Animation logic (8 ticks for 'mulus' feel)
             spriteCounter++;
-            if (spriteCounter >= 8) {
+            if (spriteCounter >= 6) { // Slightly faster animation
                 spriteNum = (spriteNum == 1) ? 2 : 1;
                 spriteCounter = 0;
             }
         } else {
             isMoving = false;
-            spriteNum = 1; // IDLE
+            spriteNum = 1;
             spriteCounter = 0;
-            velX = 0;
-            velY = 0;
         }
     }
 
@@ -176,8 +183,8 @@ public class Player extends GameObject {
 
     @Override
     public Rectangle getBounds() {
-        // Adjusted hitbox for 96x96 scale
-        return new Rectangle(x + 20, y + 40, width - 40, height - 44);
+        // Adjusted hitbox for 64x64 scale
+        return new Rectangle(x + 15, y + 30, width - 30, height - 34);
     }
 
     @Override
@@ -204,8 +211,8 @@ public class Player extends GameObject {
         // PIXEL RENDERING HINT
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
-        // NORMALIZE SIZE: Scale everything to 96px height regardless of PNG resolution
-        int targetHeight = 96;
+        // NORMALIZE SIZE: Scale everything to 64px height regardless of PNG resolution
+        int targetHeight = 64;
         int imgH = (image != null) ? image.getHeight() : 16;
         int imgW = (image != null) ? image.getWidth() : 16;
         

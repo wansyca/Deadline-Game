@@ -26,10 +26,10 @@ public class LoadingPage extends JPanel {
 
     public LoadingPage() {
         try {
-            java.net.URL bgUrl = getClass().getResource("/assets/bg.png");
+            java.net.URL bgUrl = getClass().getResource("/assets/ui/panels/bg.png");
             if (bgUrl != null) bgImage = new ImageIcon(bgUrl).getImage();
             
-            java.net.URL titleUrl = getClass().getResource("/assets/judul.png");
+            java.net.URL titleUrl = getClass().getResource("/assets/ui/panels/judul.png");
             if (titleUrl != null) titleImage = new ImageIcon(titleUrl).getImage();
         } catch (Exception e) {}
 
