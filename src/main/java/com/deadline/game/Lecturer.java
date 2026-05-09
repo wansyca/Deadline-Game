@@ -43,28 +43,38 @@ public class Lecturer extends GameObject {
             default: folder = "dosen_tua";
         }
 
-        try {
-            String basePath = "/assets/dosen/" + folder + "/";
-            up1 = ImageIO.read(getClass().getResourceAsStream(basePath + "up/up_1.png"));
-            up2 = ImageIO.read(getClass().getResourceAsStream(basePath + "up/up_2.png"));
-            down1 = ImageIO.read(getClass().getResourceAsStream(basePath + "down/down_1.png"));
-            down2 = ImageIO.read(getClass().getResourceAsStream(basePath + "down/down_2.png"));
-            left1 = ImageIO.read(getClass().getResourceAsStream(basePath + "left/left_1.png"));
-            left2 = ImageIO.read(getClass().getResourceAsStream(basePath + "left/left_2.png"));
-            right1 = ImageIO.read(getClass().getResourceAsStream(basePath + "right/right_1.png"));
-            right2 = ImageIO.read(getClass().getResourceAsStream(basePath + "right/right_2.png"));
-            
-            System.out.println("✅ Loaded assets for Lecturer: " + folder);
-        } catch (Exception e) {
-            System.err.println("❌ Error loading lecturer assets: " + folder);
-            // Fallback to flipping if needed
-            try {
-                if (right1 != null) {
-                    left1 = flipImage(right1);
-                    left2 = flipImage(right2);
-                }
-            } catch (Exception e2) {}
+        String basePath = "/assets/dosen/" + folder + "/";
+        up1 = loadSafely(basePath + "up/up_1.png");
+        up2 = loadSafely(basePath + "up/up_2.png");
+        if (up2 == null) up2 = up1;
+
+        down1 = loadSafely(basePath + "down/down_1.png");
+        down2 = loadSafely(basePath + "down/down_2.png");
+        if (down2 == null) down2 = down1;
+
+        left1 = loadSafely(basePath + "left/left_1.png");
+        left2 = loadSafely(basePath + "left/left_2.png");
+        if (left2 == null) left2 = left1;
+
+        right1 = loadSafely(basePath + "right/right_1.png");
+        right2 = loadSafely(basePath + "right/right_2.png");
+        if (right2 == null) right2 = right1;
+
+        // Fallback for left facing by flipping right facing
+        if (left1 == null && right1 != null) {
+            left1 = flipImage(right1);
+            left2 = flipImage(right2);
         }
+    }
+
+    private BufferedImage loadSafely(String path) {
+        try {
+            java.io.InputStream is = getClass().getResourceAsStream(path);
+            if (is != null) {
+                return ImageIO.read(is);
+            }
+        } catch (Exception e) {}
+        return null;
     }
 
     private BufferedImage flipImage(BufferedImage src) {
@@ -133,41 +143,26 @@ public class Lecturer extends GameObject {
         }
 
         // STATE LOGIC
-        if (distToPlayer < 400) { // Chase when player is nearby
-            state = 1; 
-        } else if (distToPlayer > 600) { // Stop chasing when far away
-            state = 0; 
+        state = 1; // Always chase!
+
+        // PATH GENERATION (Optimized for smoothness)
+        boolean pathNeeded = false;
+        int targetR = (int) (player.getY() + player.getHeight() / 2) / 64;
+        int targetC = (int) (player.getX() + player.getWidth() / 2) / 64;
+
+        if (currentPath == null || currentPath.isEmpty() || stuckTick > 2 || pathTick % 15 == 0) {
+            pathNeeded = true;
+        } else {
+            // If chasing, only recalculate if player moved significantly from our path's end goal
+            int[] lastNode = currentPath.get(currentPath.size() - 1);
+            if (Math.abs(lastNode[0] - targetR) > 1 || Math.abs(lastNode[1] - targetC) > 1) {
+                pathNeeded = true;
+            }
         }
 
-        // PATH GENERATION
-        if (pathTick % 15 == 0 || currentPath == null || currentPath.isEmpty() || stuckTick > 2) {
-            if (pathFinder != null) {
-                if (state == 1) { // CHASE PLAYER
-                    int targetR = (int) (player.getY() + player.getHeight() / 2) / 64;
-                    int targetC = (int) (player.getX() + player.getWidth() / 2) / 64;
-                    currentPath = pathFinder.findPath(currentR, currentC, targetR, targetC);
-                } else { // PATROL CORRIDOR NATURALLY
-                    // If no target, or reached target, or stuck
-                    if (patrolTargetR == -1 || (currentR == patrolTargetR && currentC == patrolTargetC) || stuckTick > 2) {
-                        // Pick random valid tile on the map to patrol to
-                        int mapRows = 75;
-                        int mapCols = 75;
-                        for (int attempts = 0; attempts < 50; attempts++) {
-                            int tr = (int)(Math.random() * mapRows);
-                            int tc = (int)(Math.random() * mapCols);
-                            if (pathFinder.isWalkable(tr, tc)) {
-                                patrolTargetR = tr;
-                                patrolTargetC = tc;
-                                break;
-                            }
-                        }
-                    }
-                    if (patrolTargetR != -1) {
-                        currentPath = pathFinder.findPath(currentR, currentC, patrolTargetR, patrolTargetC);
-                    }
-                }
-                stuckTick = 0;
-            }
+        if (pathNeeded && pathFinder != null) {
+            currentPath = pathFinder.findPath(currentR, currentC, targetR, targetC);
+            stuckTick = 0;
         }
 
         double targetDx = 0;
@@ -197,11 +192,14 @@ public class Lecturer extends GameObject {
                 isMoving = false;
             }
         } else {
-            isMoving = false;
-            patrolTargetR = -1; // Force new target next tick if path failed
+            // FALLBACK: Move directly towards player if path is empty
+            double angle = Math.atan2(player.getY() - exactY, player.getX() - exactX);
+            targetDx = Math.cos(angle);
+            targetDy = Math.sin(angle);
+            isMoving = true;
         }
 
-        speed = (state == 1) ? 4.5 : 2.0;
+        speed = 4.5;
 
         double nextX = exactX + targetDx * speed;
         double nextY = exactY + targetDy * speed;

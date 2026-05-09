@@ -140,13 +140,13 @@ public class MapGenerator {
         setObject(21, 6, 10, 1); // Whiteboard extension
         
         setObject(20, 8, 17, 1); // Teacher desk
-        setObject(20, 9, 13, 1); // Teacher chair
+        setObject(20, 7, 13, 1); // Teacher chair
         
         // Student desks (Dense grid, 1 tile gap horizontally, 2 tiles walking space vertically)
         for (int r = 13; r <= 22; r += 3) {
             for (int c = 10; c <= 30; c += 2) {
                 setObject(c, r, 12, 1); // Desk
-                setObject(c, r + 1, 13, 1); // Chair
+                setObject(c, r - 1, 13, 1); // Chair
             }
         }
         setObject(7, 7, 11, 0); // Lamp
@@ -183,7 +183,7 @@ public class MapGenerator {
         for (int r = 50; r <= 60; r += 4) {
             for (int c = 8; c <= 32; c += 4) {
                 setObject(c, r, 17, 1); // Desk
-                setObject(c, r + 1, 13, 1); // Chair
+                setObject(c, r - 1, 13, 1); // Chair
             }
         }
         
@@ -193,16 +193,18 @@ public class MapGenerator {
 
     private void populateLab() {
         // Area: x = 45 to 73, y = 6 to 34
-        // Strict requirement: Only use meja_lab (14) with built-in chair. Continuous rows.
-        for (int r = 10; r <= 30; r += 3) {
+        // Strict requirement: Only use meja_lab (14). Add chairs explicitly.
+        for (int r = 10; r <= 30; r += 4) { // Increased row gap to fit chairs comfortably
             // Left computer block
             for (int c = 48; c <= 55; c++) {
                 setObject(c, r, 14, 1);
+                setObject(c, r - 1, 13, 1); // Add chair
             }
             // Center aisle is x=56, 57, 58
             // Right computer block
             for (int c = 59; c <= 66; c++) {
                 setObject(c, r, 14, 1);
+                setObject(c, r - 1, 13, 1); // Add chair
             }
         }
         setObject(46, 7, 11, 0);

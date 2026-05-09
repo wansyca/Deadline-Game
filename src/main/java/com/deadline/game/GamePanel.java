@@ -214,12 +214,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             int r = random.nextInt(MAP_ROWS);
             int c = random.nextInt(MAP_COLS);
             
-            // Far spawn check
+            // Far spawn check & corridor check
             double dx = (c * TILE_SIZE) - player.getX();
             double dy = (r * TILE_SIZE) - player.getY();
             double dist = Math.sqrt(dx*dx + dy*dy);
             
-            if (dist > 600 && mapObject[r][c] == 0) {
+            // Spawn ONLY in corridor/lobby (mapFloor == 0) and not near player
+            if (dist > 600 && mapFloor[r][c] == 0 && mapObject[r][c] == 0) {
                 sx = c * TILE_SIZE;
                 sy = r * TILE_SIZE;
                 safe = true;
@@ -239,14 +240,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         collectedBooks = 0;
         timeLeft = 60; // Reset timer for new level
         
-        // Increase tension: Faster spawning
-        dosenSpawnInterval = Math.max(15 * 60, 3600 - (currentLevel - 1) * 600); 
-        
         generateMap(); 
         SoundManager.playBookSound();
-        
-        // Bonus challenge on level up
-        for (int i = 0; i < 2; i++) spawnLecturer();
         
         System.out.println("🚀 Level Up! Now Level: " + currentLevel + " (Need " + targetBooks + " books)");
     }
@@ -378,6 +373,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         btnExitGame = new Rectangle(panelW - 130, 25, 100, 40);
     }
 
+    private int assignmentZone = 0; // Tracks which zone to spawn the next book
+
     private void spawnAssignment() {
         Assignment a = null;
         boolean safeSpawn = false;
@@ -388,10 +385,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             int r = random.nextInt(MAP_ROWS);
             int c = random.nextInt(MAP_COLS);
             
-            // Spawn in rooms (tiles 1, 2, 3) but NOT in the white corridor (tile 0)
-            if (mapFloor[r][c] != 0 && mapObject[r][c] == 0) {
+            // Cycle through floor zones to distribute naturally
+            // 1: Lab/Restroom, 2: Library, 3: Classroom/Lecturer, 0: Corridor/Lobby
+            int targetFloor = (assignmentZone % 4); 
+            
+            if (mapFloor[r][c] == targetFloor && mapObject[r][c] == 0) {
                 a = new Assignment(c * TILE_SIZE, r * TILE_SIZE);
                 safeSpawn = true;
+                assignmentZone++;
             }
         }
         
@@ -418,18 +419,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             if (timeLeft > 0) timeLeft--;
         }
 
-        // Periodic Dosen Spawning (Increasing Tension)
-        spawnTickCounter++;
-        if (spawnTickCounter >= dosenSpawnInterval) {
-            spawnLecturer();
-            spawnTickCounter = 0;
-        }
-
         int dx = 0, dy = 0;
         if (up) dy--; if (down) dy++; if (left) dx--; if (right) dx++;
 
         player.setDirection(dx, dy);
         player.update();
+        for (Assignment a : assignments) a.update();
 
         player.applyMoveX();
         if (player.getX() < 0 || player.getX() > WORLD_WIDTH - player.getWidth()) player.rollbackX();
@@ -458,7 +453,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
 
         // --- CAMERA SYSTEM ---
-        targetZoom = 2.0;
+        targetZoom = 1.4;
         currentZoom += (targetZoom - currentZoom) * 0.1;
 
         int viewW = (int) (getWidth() / currentZoom);
@@ -488,13 +483,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         if (collectedBooks >= targetBooks) {
             levelUp();
-        } else {
-            // 1 BOOK = 1 DOSEN (Cap increases with level)
-            int dosenCap = 5 + (currentLevel - 1) * 2;
-            int targetDosen = Math.min(collectedBooks + (currentLevel - 1) * 2, dosenCap);
-            while (lecturers.size() < targetDosen) {
-                spawnLecturer();
-            }
+        }
+        
+        // STRICT RULE: 1 BOOK = 1 DOSEN (Max 5 total, regardless of level)
+        int targetDosen = Math.min(totalBooksCollected, 5);
+        while (lecturers.size() < targetDosen) {
+            spawnLecturer();
         }
         
         spawnAssignment();
@@ -539,6 +533,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 int obj = mapObject[r][c];
                 if (obj == 0) continue;
                 BufferedImage img = null;
+                boolean isFurn = false;
                 switch(obj) {
                     case 1: img = PixelAssets.imgWallTop; break;
                     case 2: img = PixelAssets.imgWallSide; break;
@@ -547,20 +542,29 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                     case 5: img = PixelAssets.imgCornerRight; break;
                     case 6: img = PixelAssets.imgDoorClass; break;
                     case 7: img = PixelAssets.imgDoorLabLibrary; break;
-                    case 8: img = PixelAssets.imgPlant; break;
-                    case 9: img = PixelAssets.imgVending; break;
-                    case 10: img = PixelAssets.imgBoard; break;
-                    case 11: img = PixelAssets.imgLamp; break;
-                    case 12: img = PixelAssets.imgMeja; break;
-                    case 13: img = PixelAssets.imgKursi; break;
-                    case 14: img = PixelAssets.imgMejaLab; break;
-                    case 15: img = PixelAssets.imgRakBuku; break;
-                    case 16: img = PixelAssets.imgBangkuLobby; break;
-                    case 17: img = PixelAssets.imgMejaDosen; break;
+                    case 8: img = PixelAssets.imgPlant; isFurn = true; break;
+                    case 9: img = PixelAssets.imgVending; isFurn = true; break;
+                    case 10: img = PixelAssets.imgBoard; isFurn = true; break;
+                    case 11: img = PixelAssets.imgLamp; isFurn = true; break;
+                    case 12: img = PixelAssets.imgMeja; isFurn = true; break;
+                    case 13: img = PixelAssets.imgKursi; isFurn = true; break;
+                    case 14: img = PixelAssets.imgMejaLab; isFurn = true; break;
+                    case 15: img = PixelAssets.imgRakBuku; isFurn = true; break;
+                    case 16: img = PixelAssets.imgBangkuLobby; isFurn = true; break;
+                    case 17: img = PixelAssets.imgMejaDosen; isFurn = true; break;
                     case 18: img = PixelAssets.imgWallBottom; break;
                 }
                 if (img != null) {
-                    g2.drawImage(img, c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE, null);
+                    if (isFurn) {
+                        int fw = (int)(TILE_SIZE * 1.5);
+                        int fh = (int)(TILE_SIZE * 1.5);
+                        int fx = c * TILE_SIZE - (fw - TILE_SIZE) / 2;
+                        int fy = r * TILE_SIZE - (fh - TILE_SIZE);
+                        if (obj == 10) fy = r * TILE_SIZE - (fh - TILE_SIZE) / 2;
+                        g2.drawImage(img, fx, fy, fw, fh, null);
+                    } else {
+                        g2.drawImage(img, c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE, null);
+                    }
                 }
             }
         }
