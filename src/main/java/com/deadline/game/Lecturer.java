@@ -214,6 +214,17 @@ public class Lecturer extends GameObject {
             if (nextBoundsX.intersects(r)) collisionX = true;
             if (nextBoundsY.intersects(r)) collisionY = true;
         }
+        
+        // Prevent lecturer overlap
+        if (lecturers != null) {
+            for (Lecturer other : lecturers) {
+                if (other != this) {
+                    Rectangle otherBounds = other.getBounds();
+                    if (nextBoundsX.intersects(otherBounds)) collisionX = true;
+                    if (nextBoundsY.intersects(otherBounds)) collisionY = true;
+                }
+            }
+        }
 
         if (!collisionX) exactX = nextX;
         if (!collisionY) exactY = nextY;
