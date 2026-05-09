@@ -9,6 +9,7 @@ import javax.swing.*;
 public class SplashScreen extends JPanel {
     private BufferedImage logo;
     private LogoPiece[] pieces;
+    private Particle[] particles;
     private int targetW, targetH;
     private Timer animTimer;
     private long startTime;
@@ -17,8 +18,8 @@ public class SplashScreen extends JPanel {
     private int shakeOffset = 0;
     
     private final int GRID_SIZE = 4; // 4x4 = 16 pieces
-    private final int DURATION_MS = 3800; // Total duration
-    private final int ASSEMBLY_TIME = 1200; // 1.2s to assemble
+    private final int DURATION_MS = 3000; // 3 seconds total
+    private final int ASSEMBLY_TIME = 1000; // 1s to assemble
 
     private class LogoPiece {
         int startX, startY;
@@ -42,6 +43,31 @@ public class SplashScreen extends JPanel {
             float easeT = 1 - (float)Math.pow(1 - t, 3);
             currentX = (int) (startX + (targetX - startX) * easeT);
             currentY = (int) (startY + (targetY - startY) * easeT);
+        }
+    }
+
+    private class Particle {
+        float x, y;
+        float speedX, speedY;
+        float size;
+        int alpha;
+        
+        Particle(int w, int h) {
+            x = (float) (Math.random() * w);
+            y = (float) (Math.random() * h);
+            speedX = (float) (Math.random() * 0.5 - 0.25);
+            speedY = (float) (Math.random() * -1.0 - 0.2); // move up slowly
+            size = (float) (Math.random() * 3 + 1);
+            alpha = (int) (Math.random() * 100 + 50);
+        }
+        
+        void update(int w, int h) {
+            x += speedX;
+            y += speedY;
+            if (y < 0) {
+                y = h;
+                x = (float) (Math.random() * w);
+            }
         }
     }
 
@@ -90,6 +116,11 @@ public class SplashScreen extends JPanel {
                                             c * pW, r * pH, pW, pH);
             }
         }
+
+        particles = new Particle[80];
+        for (int i = 0; i < particles.length; i++) {
+            particles[i] = new Particle(screenW, screenH);
+        }
         
         startAnimation();
     }
@@ -99,11 +130,15 @@ public class SplashScreen extends JPanel {
         animTimer = new Timer(16, e -> {
             long elapsed = System.currentTimeMillis() - startTime;
             
+            if (particles != null) {
+                for (Particle p : particles) p.update(getWidth(), getHeight());
+            }
+
             if (elapsed < ASSEMBLY_TIME) {
                 float t = (float) elapsed / ASSEMBLY_TIME;
                 for (LogoPiece p : pieces) p.update(t);
                 completed = false;
-            } else if (elapsed < ASSEMBLY_TIME + 1800) {
+            } else if (elapsed < DURATION_MS - 500) {
                 // Stay assembled
                 for (LogoPiece p : pieces) {
                     p.currentX = p.targetX;
@@ -117,8 +152,8 @@ public class SplashScreen extends JPanel {
                 }
                 completed = true;
             } else if (elapsed < DURATION_MS) {
-                float t = (float) (elapsed - (ASSEMBLY_TIME + 1800)) / 800f;
-                alpha = 1.0f - t;
+                float t = (float) (elapsed - (DURATION_MS - 500)) / 500f;
+                alpha = Math.max(0.0f, 1.0f - t);
             } else {
                 animTimer.stop();
                 Main.switchPage(Main.DASHBOARD);
@@ -140,15 +175,66 @@ public class SplashScreen extends JPanel {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        int w = getWidth();
+        int h = getHeight();
+        long elapsed = System.currentTimeMillis() - startTime;
+
+        // --- CINEMATIC BACKGROUND ---
         
+        // 1. Dark Gradient (Black to Deep Red)
+        GradientPaint gp = new GradientPaint(0, 0, Color.BLACK, 0, h, new Color(30, 0, 0));
+        g2.setPaint(gp);
+        g2.fillRect(0, 0, w, h);
+
+        // 2. Animated Fog
+        float fogOffset = (elapsed % 10000) / 10000f; 
+        g2.setColor(new Color(60, 10, 10, 15));
+        for (int i = 0; i < 3; i++) {
+            int ovalW = (int) (w * 1.5);
+            int ovalH = (int) (h * 1.5);
+            int ox = (int) (Math.sin(fogOffset * Math.PI * 2 + i) * 150) - (ovalW - w) / 2;
+            int oy = (int) (Math.cos(fogOffset * Math.PI * 2 + i) * 100) - (ovalH - h) / 2;
+            g2.fillOval(ox, oy, ovalW, ovalH);
+        }
+
+        // 3. Floating Dust Particles
+        if (particles != null) {
+            for (Particle p : particles) {
+                g2.setColor(new Color(255, 180, 150, p.alpha));
+                g2.fillRect((int)p.x, (int)p.y, (int)p.size, (int)p.size);
+            }
+        }
+
+        // 4. Soft Red Glow around Logo
+        if (completed) {
+            int glowSize = (int) (targetW * 1.5);
+            float glowPulse = (float) Math.abs(Math.sin(elapsed / 600.0));
+            RadialGradientPaint rgp = new RadialGradientPaint(
+                new Point(w / 2, h / 2), glowSize / 2f, 
+                new float[]{0f, 1f}, 
+                new Color[]{new Color(150, 0, 0, (int)(30 + 15 * glowPulse)), new Color(0, 0, 0, 0)}
+            );
+            g2.setPaint(rgp);
+            g2.fillRect(0, 0, w, h);
+        }
+
+        // --- DRAW LOGO ---
         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, Math.max(0, alpha)));
 
         int dw = targetW / GRID_SIZE;
         int dh = targetH / GRID_SIZE;
+        
+        // Gentle Floating Animation
+        int floatY = 0;
+        if (completed) {
+            floatY = (int) (Math.sin(elapsed / 400.0) * 8);
+        }
 
         for (LogoPiece p : pieces) {
+            int finalY = p.currentY + floatY + (completed ? shakeOffset : 0);
             g2.drawImage(logo, 
-                p.currentX, p.currentY + (completed ? shakeOffset : 0), p.currentX + dw, p.currentY + dh + (completed ? shakeOffset : 0),
+                p.currentX, finalY, p.currentX + dw, finalY + dh,
                 p.srcX, p.srcY, p.srcX + p.srcW, p.srcY + p.srcH, null);
         }
     }

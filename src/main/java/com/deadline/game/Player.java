@@ -110,7 +110,7 @@ public class Player extends GameObject {
 
     @Override
     public void update() {
-        double speedLimit = 6.0; // Responsive speed
+        double speedLimit = 8.0; // Responsive speed
         double accel = 1.0;     // Instant acceleration
         double friction = 0.9;  // Quick stop
 

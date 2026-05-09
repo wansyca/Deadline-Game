@@ -227,24 +227,42 @@ public class Lecturer extends GameObject {
         }
 
         // 4. DYNAMIC DIFFICULTY & AGGRESSION
-        // Base speed 4.0
-        double baseSpeed = 4.0;
+        // Base speed increased
+        double baseSpeed = 5.5;
         int level = GamePanel.currentLevel;
         int books = GamePanel.totalBooksCollected;
 
         // Scaling with level
-        baseSpeed += (level - 1) * 1.2;
+        baseSpeed += (level - 1) * 1.5;
 
         // Scaling with books
-        if (books >= 9)
-            baseSpeed += 1.5; // High Aggression at 9 books
-        else if (books >= 5)
+        if (books > 5) {
+            baseSpeed += (books - 5) * 1.0; // Makin agresif setelah 5 buku
+        } else if (books >= 3) {
             baseSpeed += 0.5;
+        }
 
         this.speed = baseSpeed;
 
-        double nextX = exactX + targetDx * speed;
-        double nextY = exactY + targetDy * speed;
+        // Soft repulsion from other lecturers
+        double repulseX = 0;
+        double repulseY = 0;
+        if (lecturers != null) {
+            for (Lecturer other : lecturers) {
+                if (other != this) {
+                    double dxL = exactX - other.exactX;
+                    double dyL = exactY - other.exactY;
+                    double distL = Math.sqrt(dxL * dxL + dyL * dyL);
+                    if (distL > 0 && distL < 50) {
+                        repulseX += (dxL / distL) * (50 - distL) * 0.15;
+                        repulseY += (dyL / distL) * (50 - distL) * 0.15;
+                    }
+                }
+            }
+        }
+
+        double nextX = exactX + targetDx * speed + repulseX;
+        double nextY = exactY + targetDy * speed + repulseY;
 
         // Collision check (Dosen cannot walk through walls, desks, etc.)
         // Made AI hitbox slightly smaller so they don't snag on wall corners while
@@ -332,7 +350,8 @@ public class Lecturer extends GameObject {
     }
 
     public Rectangle getBounds() {
-        return new Rectangle(x + 15, y + 30, width - 30, height - 34);
+        // Full size hitbox so collision happens before visual overlap
+        return new Rectangle(x, y, width, height);
     }
 
     public boolean intersects(Player p) {

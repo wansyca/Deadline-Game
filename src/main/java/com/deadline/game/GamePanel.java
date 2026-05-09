@@ -485,7 +485,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         // --- CAMERA SYSTEM ---
         targetZoom = 0.85; // Less zoom to see more of the campus
-        currentZoom += (targetZoom - currentZoom) * 0.1;
+        currentZoom = targetZoom; // Fixed zoom to prevent jitter
 
         int viewW = (int) (getWidth() / currentZoom);
         int viewH = (int) (getHeight() / currentZoom);
@@ -636,8 +636,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                         img = PixelAssets.imgCornerRight;
                         break;
                     case 6:
-                        img = PixelAssets.imgDoorClass;
-                        break;
                     case 7:
                         img = PixelAssets.imgDoorLabLibrary;
                         break;
@@ -700,6 +698,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                         } else {
                             // Furniture logic
                             double scale = 1.8;
+                            if (obj == 14) scale = 2.2; // Sedikit lebih besar untuk meja lab
                             int fw = (int) (TILE_SIZE * scale);
                             int fh = (int) (TILE_SIZE * scale);
                             int fx = c * TILE_SIZE - (fw - TILE_SIZE) / 2;
