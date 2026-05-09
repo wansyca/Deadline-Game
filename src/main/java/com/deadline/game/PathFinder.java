@@ -13,6 +13,11 @@ public class PathFinder {
         this.cols = collision[0].length;
     }
 
+    public boolean isWalkable(int r, int c) {
+        if (r < 0 || r >= rows || c < 0 || c >= cols) return false;
+        return collision[r][c] == 0;
+    }
+
     private static class Node implements Comparable<Node> {
         int r, c;
         int g, h, f;

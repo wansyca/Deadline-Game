@@ -73,11 +73,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private int survivalTime = 0;
     private int ticks = 0;
     private int collectedBooks = 0;
+    private int totalBooksCollected = 0;
     private int currentLevel = 1;
     private int targetBooks = 10;
-    private int levelTime = 60;
     private int timeLeft = 60;
-
+    private int spawnTickCounter = 0;
+    private int dosenSpawnInterval = 60 * 60; // 60 seconds at 60 FPS
     private int currentPlayerId = -1;
 
     private boolean up, down, left, right;
@@ -218,7 +219,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             double dy = (r * TILE_SIZE) - player.getY();
             double dist = Math.sqrt(dx*dx + dy*dy);
             
-            if (dist > 600 && mapFloor[r][c] == 0 && mapObject[r][c] == 0) {
+            if (dist > 600 && mapObject[r][c] == 0) {
                 sx = c * TILE_SIZE;
                 sy = r * TILE_SIZE;
                 safe = true;
@@ -234,13 +235,20 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     private void levelUp() {
         currentLevel++;
+        targetBooks = 10 + (currentLevel - 1) * 5; // 10, 15, 20...
+        collectedBooks = 0;
+        timeLeft = 60; // Reset timer for new level
+        
+        // Increase tension: Faster spawning
+        dosenSpawnInterval = Math.max(15 * 60, 3600 - (currentLevel - 1) * 600); 
+        
         generateMap(); 
         SoundManager.playBookSound();
         
         // Bonus challenge on level up
         for (int i = 0; i < 2; i++) spawnLecturer();
         
-        System.out.println("🚀 Level Up! Now Level: " + currentLevel);
+        System.out.println("🚀 Level Up! Now Level: " + currentLevel + " (Need " + targetBooks + " books)");
     }
 
     private void initGame() {
@@ -251,7 +259,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         survivalTime = 0;
         ticks = 0;
         collectedBooks = 0;
+        totalBooksCollected = 0;
+        currentLevel = 1;
         targetBooks = 10;
+        timeLeft = 60;
+        spawnTickCounter = 0;
+        dosenSpawnInterval = 3600; 
         
         generateMap();
 
@@ -270,8 +283,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         lecturers = new ArrayList<>();
         assignments = new ArrayList<>();
 
-        // Start with 1 lecturer
-        spawnLecturer();
+        // Start with 0 lecturers (Rule: 1 collected book = 1 dosen)
         
         // Spawn initial assignments
         for (int i = 0; i < 20; i++) spawnAssignment();
@@ -311,7 +323,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     private void saveFinalScore() {
         if (player != null && player.getName() != null && !player.getName().isEmpty()) {
-            int scoreToSave = survivalTime + (collectedBooks * 10);
+            int scoreToSave = (survivalTime / 10) + (totalBooksCollected * 50) + (currentLevel * 100);
             LeaderboardManager.saveScore(player.getName(), scoreToSave, survivalTime, player.getAvatar());
         }
     }
@@ -376,8 +388,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             int r = random.nextInt(MAP_ROWS);
             int c = random.nextInt(MAP_COLS);
             
-            // Spawn on empty floor
-            if (mapFloor[r][c] != 3 && mapObject[r][c] == 0) {
+            // Spawn in rooms (tiles 1, 2, 3) but NOT in the white corridor (tile 0)
+            if (mapFloor[r][c] != 0 && mapObject[r][c] == 0) {
                 a = new Assignment(c * TILE_SIZE, r * TILE_SIZE);
                 safeSpawn = true;
             }
@@ -401,7 +413,17 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         }
 
         ticks++;
-        if (ticks % FPS == 0) survivalTime++;
+        if (ticks % FPS == 0) {
+            survivalTime++;
+            if (timeLeft > 0) timeLeft--;
+        }
+
+        // Periodic Dosen Spawning (Increasing Tension)
+        spawnTickCounter++;
+        if (spawnTickCounter >= dosenSpawnInterval) {
+            spawnLecturer();
+            spawnTickCounter = 0;
+        }
 
         int dx = 0, dy = 0;
         if (up) dy--; if (down) dy++; if (left) dx--; if (right) dx++;
@@ -461,12 +483,20 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (index < 0 || index >= assignments.size()) return;
         SoundManager.playBookSound();
         collectedBooks++;
+        totalBooksCollected++;
         assignments.remove(index);
 
-        if (collectedBooks >= targetBooks) levelUp();
-
-        // 1 BOOK = 1 NEW DOSEN
-        spawnLecturer();
+        if (collectedBooks >= targetBooks) {
+            levelUp();
+        } else {
+            // 1 BOOK = 1 DOSEN (Cap increases with level)
+            int dosenCap = 5 + (currentLevel - 1) * 2;
+            int targetDosen = Math.min(collectedBooks + (currentLevel - 1) * 2, dosenCap);
+            while (lecturers.size() < targetDosen) {
+                spawnLecturer();
+            }
+        }
+        
         spawnAssignment();
     }
 
@@ -538,8 +568,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         for (Assignment a : assignments) a.draw(g2);
         for (Lecturer l : lecturers) { l.setPathFinder(pathFinder); l.draw(g2); }
         player.draw(g2);
-
-        g2.translate(camX, camY);
+            g2.translate(camX, camY);
         applyLighting(g2);
         g2.scale(1.0/currentZoom, 1.0/currentZoom);
         drawUI(g2);
@@ -552,19 +581,19 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         BufferedImage overlay = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
         Graphics2D gL = overlay.createGraphics();
         
-        // 1. CINEMATIC AMBIENCE (Deep Dark Blue, Less Opaque)
-        gL.setColor(new Color(2, 2, 10, 150)); 
+        // 1. INKY CINEMATIC AMBIENCE (Deep Midnight Blue-Black for Dark Academia Stealth)
+        gL.setColor(new Color(4, 4, 12, 235)); 
         gL.fillRect(0, 0, w, h);
         
-        // 2. PLAYER SPOTLIGHT (Tense but clear)
+        // 2. LIGHT SOURCE SUBTRACTION (Punches holes in darkness to reveal map)
         gL.setComposite(java.awt.AlphaComposite.DstOut);
+        
+        // A. PLAYER SPOTLIGHT (Tense and focused flashlight)
         int px = (int)((player.getX() - camX + player.getWidth()/2) * currentZoom);
         int py = (int)((player.getY() - camY + player.getHeight()/2) * currentZoom);
+        drawPunchHole(gL, px, py, (int)(320 * currentZoom)); 
         
-        drawRadialGradient(gL, px, py, (int)(300 * currentZoom), new Color(255, 255, 255, 255));
-        drawRadialGradient(gL, px, py, (int)(600 * currentZoom), new Color(255, 255, 220, 120));
-        
-        // 3. WARM LAMP GLOWS
+        // B. WORLD LIGHT SOURCES
         int startCol = Math.max(0, camX / TILE_SIZE);
         int startRow = Math.max(0, camY / TILE_SIZE);
         int endCol = Math.min(MAP_COLS, (camX + (int)(w/currentZoom)) / TILE_SIZE + 2);
@@ -572,24 +601,71 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         for (int r = startRow; r < endRow; r++) {
             for (int c = startCol; c < endCol; c++) {
-                if (mapObject[r][c] == 11) { // LAMP
-                    int lx = (int)((c * TILE_SIZE - camX + TILE_SIZE / 2) * currentZoom);
-                    int ly = (int)((r * TILE_SIZE - camY + TILE_SIZE / 2) * currentZoom);
-                    drawRadialGradient(gL, lx, ly, (int)(160 * currentZoom), new Color(255, 180, 80, 255));
+                int lx = (int)((c * TILE_SIZE - camX + TILE_SIZE / 2) * currentZoom);
+                int ly = (int)((r * TILE_SIZE - camY + TILE_SIZE / 2) * currentZoom);
+                
+                int obj = mapObject[r][c];
+                if (obj == 11) { // LAMP
+                    drawPunchHole(gL, lx, ly, (int)(220 * currentZoom));
+                } else if (obj == 9) { // VENDING
+                    drawPunchHole(gL, lx, ly, (int)(150 * currentZoom));
+                } else if (obj == 14) { // PC 
+                    drawPunchHole(gL, lx, ly, (int)(100 * currentZoom));
                 }
             }
         }
 
         gL.dispose();
+        
+        // Render darkness to screen
         g2.drawImage(overlay, 0, 0, null);
         
-        // 4. VIGNETTE
+        // 3. COLOR TINT OVERLAYS (Additive Warm/Cold Glows)
+        g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 1.0f));
+        for (int r = startRow; r < endRow; r++) {
+            for (int c = startCol; c < endCol; c++) {
+                int lx = (int)((c * TILE_SIZE - camX + TILE_SIZE / 2) * currentZoom);
+                int ly = (int)((r * TILE_SIZE - camY + TILE_SIZE / 2) * currentZoom);
+                
+                int obj = mapObject[r][c];
+                if (obj == 11) { // LAMP (Warm Amber Glow)
+                    drawColorGlow(g2, lx, ly, (int)(180 * currentZoom), new Color(255, 130, 20, 60));
+                } else if (obj == 9) { // VENDING (Cold Electronic Glow)
+                    drawColorGlow(g2, lx, ly, (int)(120 * currentZoom), new Color(40, 140, 255, 50));
+                } else if (obj == 14) { // PC (Faint Monitor Glow)
+                    drawColorGlow(g2, lx, ly, (int)(80 * currentZoom), new Color(160, 255, 255, 25));
+                }
+            }
+        }
+        
+        // 4. CINEMATIC VIGNETTE (Focusing the view for horror aesthetic)
+        float vignetteSize = 0.75f - (currentLevel - 1) * 0.05f;
+        if (vignetteSize < 0.4f) vignetteSize = 0.4f; // Hard limit
+
         float[] dist = {0.3f, 1.0f};
-        Color[] colors = {new Color(0,0,0,0), new Color(0,0,0,120)};
+        Color[] colors = {new Color(0,0,0,0), new Color(0,0,0,250)};
         java.awt.RadialGradientPaint rgp = new java.awt.RadialGradientPaint(
-            new Point(w/2, h/2), (float)w * 0.7f, dist, colors);
+            new Point(w/2, h/2), (float)w * vignetteSize, dist, colors);
         g2.setPaint(rgp);
         g2.fillRect(0, 0, w, h);
+    }
+
+    private void drawPunchHole(Graphics2D g2, int x, int y, int radius) {
+        float[] dist = {0.0f, 0.5f, 1.0f};
+        Color[] colors = {new Color(0,0,0,255), new Color(0,0,0,160), new Color(0,0,0,0)};
+        java.awt.RadialGradientPaint rgp = new java.awt.RadialGradientPaint(
+            new Point(x, y), radius, dist, colors);
+        g2.setPaint(rgp);
+        g2.fillOval(x - radius, y - radius, radius * 2, radius * 2);
+    }
+
+    private void drawColorGlow(Graphics2D g2, int x, int y, int radius, Color color) {
+        float[] dist = {0.0f, 1.0f};
+        Color[] colors = {color, new Color(color.getRed(), color.getGreen(), color.getBlue(), 0)};
+        java.awt.RadialGradientPaint rgp = new java.awt.RadialGradientPaint(
+            new Point(x, y), radius, dist, colors);
+        g2.setPaint(rgp);
+        g2.fillOval(x - radius, y - radius, radius * 2, radius * 2);
     }
 
     private void drawHUD(Graphics2D g) {
@@ -597,72 +673,55 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         int h = getHeight();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Professional Dark Translucent Style
-        Color boxColor = new Color(0, 0, 0, 190);
-        Color borderColor = new Color(255, 255, 255, 100);
-        g.setFont(new Font("Arial", Font.BOLD, 14));
-
-        // 1. TOP-LEFT: STATUS BOX
+        // One Clean Pixel-Art UI Box (Minimalist Stealth Aesthetic)
+        Color boxColor = new Color(0, 0, 0, 180);
+        Color borderColor = new Color(255, 255, 255, 30); // Subtle border
+        
+        // 1. MAIN HUD BOX
+        int hudX = 25, hudY = 25, hudW = 220, hudH = 110;
         g.setColor(boxColor);
-        g.fillRoundRect(20, 20, 200, 110, 10, 10);
+        g.fillRoundRect(hudX, hudY, hudW, hudH, 8, 8);
         g.setColor(borderColor);
-        g.drawRoundRect(20, 20, 200, 110, 10, 10);
-        
-        g.setColor(Color.WHITE);
-        g.drawString("PLAYER", 40, 45);
-        g.setFont(new Font("Arial", Font.PLAIN, 12));
-        g.drawString(player.getName().toLowerCase(), 40, 65);
-        g.setFont(new Font("Arial", Font.BOLD, 14));
-        g.drawString("LEVEL: " + currentLevel, 40, 85);
-        g.setColor(new Color(255, 215, 0));
-        g.drawString("BUKU: " + collectedBooks + " / " + targetBooks, 40, 105);
+        g.setStroke(new BasicStroke(1.5f));
+        g.drawRoundRect(hudX, hudY, hudW, hudH, 8, 8);
 
-        // 2. TOP-CENTER: TIMER BOX
-        g.setColor(boxColor);
-        g.fillRoundRect(w/2 - 60, 20, 120, 50, 10, 10);
-        g.setColor(borderColor);
-        g.drawRoundRect(w/2 - 60, 20, 120, 50, 10, 10);
-        
+        // Text rendering
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 20));
-        String timeStr = String.format("%02d:%02d", timeLeft/60, timeLeft%60);
-        g.drawString(timeStr, w/2 - 25, 53);
+        if (pixelFont != null) {
+            g.setFont(pixelFont.deriveFont(Font.BOLD, 16));
+        } else {
+            g.setFont(new Font("Monospaced", Font.BOLD, 16));
+        }
 
-        // 3. BOTTOM-LEFT: TUJUAN BOX
-        g.setColor(boxColor);
-        g.fillRoundRect(20, h - 130, 220, 110, 10, 10);
-        g.setColor(borderColor);
-        g.drawRoundRect(20, h - 130, 220, 110, 10, 10);
-        
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 14));
-        g.drawString("TUJUAN", 40, h - 105);
-        g.setFont(new Font("Arial", Font.PLAIN, 11));
-        g.drawString("• Kumpulkan semua buku", 40, h - 85);
-        g.drawString("• Hindari dosen", 40, h - 70);
-        g.drawString("• Naik level sebanyak mungkin", 40, h - 55);
-        g.drawString("• Dapatkan skor tertinggi!", 40, h - 40);
+        // Row 1: Player Name
+        String nameStr = player.getName().toUpperCase();
+        g.drawString(nameStr, hudX + 15, hudY + 30);
 
-        // 4. BOTTOM-RIGHT: PROGRESS BOX
-        g.setColor(boxColor);
-        g.fillRoundRect(w - 240, h - 100, 220, 80, 10, 10);
-        g.setColor(borderColor);
-        g.drawRoundRect(w - 240, h - 100, 220, 80, 10, 10);
+        // Secondary Text
+        if (pixelFont != null) {
+            g.setFont(pixelFont.deriveFont(Font.PLAIN, 12));
+        } else {
+            g.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        }
         
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 12));
-        g.drawString("PROGRESS", w - 220, h - 75);
-        g.drawString("BUKU: " + collectedBooks + " / " + targetBooks, w - 220, h - 60);
+        // Row 2: Timer
+        String timeStr = String.format("TIME: %02d:%02d", timeLeft/60, timeLeft%60);
+        g.drawString(timeStr, hudX + 15, hudY + 55);
         
-        // Bar
+        // Row 3: Books (Progress)
+        g.setColor(new Color(200, 200, 200));
+        g.drawString("BOOKS: " + collectedBooks + " / " + targetBooks, hudX + 15, hudY + 75);
+        
+        // Row 4: Level (Emphasized)
+        g.setColor(new Color(255, 215, 0)); // Gold/Yellow for visibility
+        g.drawString("LVL. " + currentLevel, hudX + 15, hudY + 95);
+        
+        // Subtle progress bar under Level
         g.setColor(new Color(40, 40, 40));
-        g.fillRect(w - 220, h - 50, 180, 8);
-        g.setColor(new Color(0, 255, 100));
-        int progW = (int)(180 * ((double)collectedBooks / targetBooks));
-        g.fillRect(w - 220, h - 50, progW, 8);
-        
-        g.setColor(new Color(255, 100, 100));
-        g.drawString("DOSEN: " + lecturers.size(), w - 220, h - 30);
+        g.fillRect(hudX + 80, hudY + 86, 120, 4);
+        g.setColor(new Color(255, 215, 0));
+        int progW = (int)(120 * ((double)collectedBooks / targetBooks));
+        g.fillRect(hudX + 80, hudY + 86, progW, 4);
     }
 
     private void drawRadialGradient(Graphics2D g2, int x, int y, int radius, Color color) {

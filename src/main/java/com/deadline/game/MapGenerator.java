@@ -2,12 +2,16 @@ package com.deadline.game;
 
 import java.util.Random;
 
+/**
+ * MapGenerator - Final Professional Version.
+ * Hand-crafted, ultra-realistic university indoor layout.
+ * Features a central corridor, organized rooms, and perfect wall connectivity.
+ */
 public class MapGenerator {
     private int rows, cols;
     private int[][] floor;
     private int[][] objects;
     private int[][] collision;
-    private Random random = new Random();
 
     public MapGenerator(int rows, int cols) {
         this.rows = rows;
@@ -18,48 +22,89 @@ public class MapGenerator {
     }
 
     public void generate() {
-        // 1. Initial Fill: Solid Void / Wall Center (for thick walls feel)
-        fillArea(0, cols, 0, rows, 3, 3, 1);
+        // 1. FILL VOID (Dark background, collision=1, object=99 to prevent book spawns)
+        fillArea(0, cols, 0, rows, 3, 99, 1);
 
-        // Grid Lines
-        int X0 = 4, X1 = 26, X_TOP_SPLIT = 38, X_BOT_SPLIT = 46, X2 = 54, X3 = 76;
-        int Y0 = 4, Y1 = 32, Y2 = 56, Y3 = 76;
+        // 2. FLOOR PLAN
+        // Corridor (floor=0)
+        fillArea(35, 45, 5, 66, 0, 0, 0); 
+        // Lobby (floor=0)
+        fillArea(20, 60, 65, 75, 0, 0, 0); 
 
-        // 2. Rooms
-        // LOBBY (Center)
-        createRoom(X1, Y1, X2, Y2, 2, "LOBBY");
+        // Left Wing Rooms
+        fillArea(6, 35, 6, 25, 3, 0, 0);  // Classroom (floor_dark)
+        fillArea(6, 35, 26, 45, 2, 0, 0); // Library (floor_library)
+        fillArea(6, 35, 46, 65, 3, 0, 0); // Lecturer (floor_dark)
 
-        // KELAS (Top Left)
-        createRoom(X0, Y0, X_TOP_SPLIT, Y1, 0, "CLASSROOM");
-        setObject(32, Y1, 6, 0); // Door to Lobby (Bottom Wall)
+        // Right Wing Rooms
+        fillArea(45, 74, 6, 35, 1, 0, 0); // Computer Lab (floor_lab)
+        fillArea(45, 74, 36, 65, 1, 0, 0); // Restroom (floor_lab)
 
-        // PERPUSTAKAAN (Top Right)
-        createRoom(X_TOP_SPLIT, Y0, X3, Y1, 2, "LIBRARY");
-        setObject(46, Y1, 6, 0); // Door to Lobby (Bottom Wall)
+        // 3. WALLS & STRUCTURE (Mathematically Perfect, Zero Overlap)
+        // Outer boundaries
+        drawHWall(6, 73, 5, 1); // Top outer wall
+        drawHWall(21, 58, 75, 18); // Bottom outer wall (Lobby)
+        drawVWall(5, 6, 64, 2); // Far Left outer wall
+        drawVWall(74, 6, 64, 2); // Far Right outer wall
+        drawVWall(20, 66, 74, 2); // Lobby Left
+        drawVWall(59, 66, 74, 2); // Lobby Right
+        
+        // Connect Lobby bottom to wings
+        drawHWall(6, 19, 65, 18); // Left wing bottom outer wall
+        drawHWall(60, 73, 65, 18); // Right wing bottom outer wall
 
-        // LAB (Mid Left)
-        createRoom(X0, Y1, X1, Y2, 1, "LAB");
-        setObject(X1, 44, 6, 0); // Door to Lobby (Right Wall)
+        // Central Corridor Walls
+        drawVWall(35, 6, 64, 2); // Left corridor wall
+        drawVWall(44, 6, 64, 2); // Right corridor wall
 
-        // DOSEN (Mid Right)
-        createRoom(X2, Y1, X3, Y2, 0, "DOSEN");
-        setObject(X2, 44, 6, 0); // Door to Lobby (Left Wall)
+        // Room horizontal dividers
+        drawHWall(6, 34, 25, 1); // Class - Library divider
+        drawHWall(6, 34, 45, 1); // Library - Lecturer divider
+        drawHWall(45, 73, 35, 1); // Lab - Restroom divider
+        
+        // Lobby top wall sections (leaves corridor entrance open)
+        drawHWall(21, 34, 65, 1);
+        drawHWall(45, 58, 65, 1);
 
-        // KELAS KECIL (Bottom Left)
-        createRoom(X0, Y2, X_BOT_SPLIT, Y3, 0, "CLASSROOM_SMALL");
-        setObject(34, Y2, 6, 0); // Door to Lobby (Top Wall)
+        // Corners for seamless connections (No Overlaps)
+        setObject(5, 5, 4, 1); // Top-left building
+        setObject(74, 5, 5, 1); // Top-right building
+        setObject(20, 65, 4, 1); // Lobby top-left
+        setObject(59, 65, 5, 1); // Lobby top-right
+        setObject(35, 65, 5, 1); // Corridor-Lobby left inner
+        setObject(44, 65, 4, 1); // Corridor-Lobby right inner
 
-        // TOILET (Bottom Right)
-        createRoom(X_BOT_SPLIT, Y2, X3, Y3, 1, "TOILET");
-        setObject(50, Y2, 6, 0); // Door to Lobby (Top Wall)
+        // Bottom outer corners
+        setObject(5, 65, 2, 1); // Left wing bottom-left (side wall seamlessly ends it)
+        setObject(74, 65, 2, 1); // Right wing bottom-right
+        setObject(20, 75, 2, 1); // Lobby bottom-left
+        setObject(59, 75, 2, 1); // Lobby bottom-right
 
-        // 3. Polish and World Details
+        // 4. DOORS (wall - wall - DOOR - wall - wall format)
+        // Left doors (placed exactly on the left corridor wall)
+        setObject(35, 15, 6, 0); // Classroom Door
+        setObject(35, 35, 7, 0); // Library Door
+        setObject(35, 55, 6, 0); // Lecturer Door
+
+        // Right doors (placed exactly on the right corridor wall)
+        setObject(44, 20, 7, 0); // Lab Door
+        setObject(44, 50, 6, 0); // Restroom Door
+
+        // 5. FURNITURE POPULATION
+        populateClassroom();
+        populateLibrary();
+        populateLecturer();
+        populateLab();
+        populateRestroom();
+        populateLobby();
+        populateCorridor();
+
         polishWorld();
     }
 
     private void fillArea(int x, int xEnd, int y, int yEnd, int floorTile, int objectTile, int coll) {
-        for (int r = y; r < yEnd && r < rows; r++) {
-            for (int c = x; c < xEnd && c < cols; c++) {
+        for (int r = y; r < yEnd; r++) {
+            for (int c = x; c < xEnd; c++) {
                 if (r >= 0 && r < rows && c >= 0 && c < cols) {
                     floor[r][c] = floorTile;
                     objects[r][c] = objectTile;
@@ -69,137 +114,15 @@ public class MapGenerator {
         }
     }
 
-    private void createRoom(int startX, int startY, int endX, int endY, int floorTile, String type) {
-        // Interior floor
-        fillArea(startX + 1, endX, startY + 1, endY, floorTile, 0, 0);
-
-        // Walls
-        for (int c = startX + 1; c < endX; c++) {
-            setObject(c, startY, 1, 1); // Top Wall
-            setObject(c, endY, 18, 1); // Bottom Wall
-        }
-        for (int r = startY + 1; r < endY; r++) {
-            setObject(startX, r, 2, 1); // Left Wall
-            setObject(endX, r, 2, 1); // Right Wall
-        }
-
-        // Corners
-        setObject(startX, startY, 4, 1); // Top-Left
-        setObject(endX, startY, 5, 1); // Top-Right
-        setObject(startX, endY, 2, 1); // Bottom-Left (Side Wall works best for bottom corners)
-        setObject(endX, endY, 2, 1); // Bottom-Right
-
-        populateFurniture(startX + 1, startY + 1, endX - startX - 1, endY - startY - 1, type);
-    }
-
-    private void populateFurniture(int x, int y, int w, int h, String type) {
-        if (type.equals("CLASSROOM") || type.equals("CLASSROOM_SMALL")) {
-            // Whiteboard at front
-            setObject(x + w / 2 - 1, y + 1, 10, 1);
-            setObject(x + w / 2, y + 1, 10, 1);
-            
-            // Teacher Desk
-            setObject(x + w / 2, y + 3, 17, 1);
-            
-            // Dense Student Desks Grid
-            for (int r = y + 6; r < y + h - 3; r += 3) {
-                for (int c = x + 3; c < x + w - 3; c += 3) {
-                    setObject(c, r, 12, 1); // Meja
-                    setObject(c, r + 1, 13, 1); // Kursi
-                }
-            }
-            
-            // Decor
-            setObject(x + 1, y + 1, 8, 1); // Plant
-            setObject(x + w - 2, y + 1, 11, 0); // Lamp
-            
-        } else if (type.equals("LIBRARY")) {
-            // Dense Bookshelves Arrays
-            for (int c = x + 3; c < x + w - 3; c += 5) {
-                for (int r = y + 2; r < y + h - 8; r += 2) {
-                    setObject(c, r, 15, 1);
-                    setObject(c + 1, r, 15, 1);
-                }
-            }
-            // Reading area at bottom
-            for (int c = x + 4; c < x + w - 4; c += 6) {
-                setObject(c, y + h - 5, 12, 1); // Table
-                setObject(c, y + h - 4, 13, 1); // Chair
-                setObject(c, y + h - 6, 13, 1); // Chair (facing down)
-            }
-            // Cozy corners
-            setObject(x + 1, y + 1, 11, 0);
-            setObject(x + w - 2, y + 1, 11, 0);
-            setObject(x + 2, y + h - 3, 16, 1); // Sofa
-
-        } else if (type.equals("LAB")) {
-            // PC Rows
-            for (int r = y + 3; r < y + h - 3; r += 4) {
-                for (int c = x + 2; c < x + w - 2; c += 3) {
-                    setObject(c, r, 14, 1); // PC Desk
-                    setObject(c, r + 1, 13, 1); // Chair
-                }
-            }
-            setObject(x + w - 2, y + 1, 9, 1); // Vending
-
-        } else if (type.equals("TOILET")) {
-            // Sinks
-            for (int c = x + 2; c < x + w - 2; c += 3) {
-                setObject(c, y + 1, 14, 1); // Sink
-            }
-            // Dividers / Stalls
-            for (int r = y + 5; r < y + h - 2; r += 3) {
-                setObject(x + 3, r, 2, 1); // Wall side as stall divider
-                setObject(x + 4, r, 13, 1); // Toilet bowl
-            }
-
-        } else if (type.equals("DOSEN")) {
-            // Professional Office Desks
-            for (int c = x + 3; c < x + w - 4; c += 6) {
-                for (int r = y + 3; r < y + h - 4; r += 5) {
-                    setObject(c, r, 17, 1); // Teacher desk
-                    setObject(c, r + 1, 13, 1); // Chair
-                    setObject(c + 2, r, 8, 1); // Plant
-                }
-            }
-            // Break area
-            setObject(x + w - 2, y + 2, 9, 1); // Vending
-            setObject(x + w - 3, y + 2, 15, 1); // Bookshelf
-            setObject(x + 2, y + 2, 16, 1); // Sofa
-
-        } else if (type.equals("LOBBY")) {
-            // Massive Central Lobby Hub
-            // Reception Area
-            setObject(x + w / 2 - 2, y + h / 2, 17, 1); 
-            setObject(x + w / 2 - 1, y + h / 2, 17, 1); 
-            setObject(x + w / 2, y + h / 2, 17, 1); 
-            setObject(x + w / 2 + 1, y + h / 2, 17, 1);
-            setObject(x + w / 2, y + h / 2 + 1, 13, 1); // Receptionist Chair
-            
-            // Waiting Lounges
-            setObject(x + 3, y + 3, 16, 1); // Sofa Left
-            setObject(x + 3, y + 5, 16, 1);
-            setObject(x + 5, y + 4, 11, 0); // Lamp
-            
-            setObject(x + w - 4, y + 3, 16, 1); // Sofa Right
-            setObject(x + w - 4, y + 5, 16, 1);
-            setObject(x + w - 6, y + 4, 11, 0); // Lamp
-
-            // Vending & Info Board
-            setObject(x + w - 3, y + h - 3, 9, 1);
-            setObject(x + w - 4, y + h - 3, 9, 1);
-            setObject(x + 4, y + h - 3, 10, 1); // Board
+    private void drawHWall(int x1, int x2, int y, int type) {
+        for (int x = x1; x <= x2; x++) {
+            setObject(x, y, type, 1);
         }
     }
 
-    private void polishWorld() {
-        // Ensure doors are passable and no collision issues
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                if (objects[r][c] == 6 || objects[r][c] == 7) {
-                    collision[r][c] = 0;
-                }
-            }
+    private void drawVWall(int x, int y1, int y2, int type) {
+        for (int y = y1; y <= y2; y++) {
+            setObject(x, y, type, 1);
         }
     }
 
@@ -210,7 +133,139 @@ public class MapGenerator {
         }
     }
 
+    private void populateClassroom() {
+        // Area: x = 6 to 34, y = 6 to 24
+        // Front area
+        setObject(20, 6, 10, 1); // Whiteboard center
+        setObject(21, 6, 10, 1); // Whiteboard extension
+        
+        setObject(20, 8, 17, 1); // Teacher desk
+        setObject(20, 9, 13, 1); // Teacher chair
+        
+        // Student desks (Dense grid, 1 tile gap horizontally, 2 tiles walking space vertically)
+        for (int r = 13; r <= 22; r += 3) {
+            for (int c = 10; c <= 30; c += 2) {
+                setObject(c, r, 12, 1); // Desk
+                setObject(c, r + 1, 13, 1); // Chair
+            }
+        }
+        setObject(7, 7, 11, 0); // Lamp
+        setObject(33, 7, 11, 0); // Lamp
+    }
+
+    private void populateLibrary() {
+        // Area: x = 6 to 34, y = 26 to 44
+        // Dense double-sided bookshelf aisles
+        for (int r = 28; r <= 38; r++) {
+            for (int c = 8; c <= 30; c += 4) {
+                setObject(c, r, 15, 1);     // Left shelf of the block
+                setObject(c + 1, r, 15, 1); // Right shelf of the block
+            }
+        }
+        
+        // Proper reading desks (1x2 table surrounded by 4 chairs)
+        for (int c = 10; c <= 30; c += 5) {
+            setObject(c, 41, 12, 1); // Table top
+            setObject(c, 42, 12, 1); // Table bottom
+            setObject(c - 1, 41, 13, 1); // Chair left-top
+            setObject(c - 1, 42, 13, 1); // Chair left-bottom
+            setObject(c + 1, 41, 13, 1); // Chair right-top
+            setObject(c + 1, 42, 13, 1); // Chair right-bottom
+        }
+        
+        setObject(7, 27, 11, 0);
+        setObject(33, 27, 11, 0);
+    }
+
+    private void populateLecturer() {
+        // Area: x = 6 to 34, y = 46 to 64
+        // Dense office cubicle layout
+        for (int r = 50; r <= 60; r += 4) {
+            for (int c = 8; c <= 32; c += 4) {
+                setObject(c, r, 17, 1); // Desk
+                setObject(c, r + 1, 13, 1); // Chair
+            }
+        }
+        
+        setObject(7, 47, 11, 0);
+        setObject(33, 47, 11, 0);
+    }
+
+    private void populateLab() {
+        // Area: x = 45 to 73, y = 6 to 34
+        // Strict requirement: Only use meja_lab (14) with built-in chair. Continuous rows.
+        for (int r = 10; r <= 30; r += 3) {
+            // Left computer block
+            for (int c = 48; c <= 55; c++) {
+                setObject(c, r, 14, 1);
+            }
+            // Center aisle is x=56, 57, 58
+            // Right computer block
+            for (int c = 59; c <= 66; c++) {
+                setObject(c, r, 14, 1);
+            }
+        }
+        setObject(46, 7, 11, 0);
+        setObject(72, 7, 11, 0);
+    }
+
+    private void populateRestroom() {
+        // Area: x = 45 to 73, y = 36 to 64
+        // Sinks array along the top wall
+        for (int c = 48; c <= 60; c += 2) {
+            setObject(c, 37, 12, 1); // Sink/Counter
+        }
+        setObject(46, 37, 11, 0);
+    }
+
+    private void populateLobby() {
+        // Area: x = 20 to 59, y = 65 to 74
+        // Massive continuous Reception Desk
+        drawHWall(25, 32, 68, 17); 
+        setObject(27, 69, 13, 1); // Receptionist 1
+        setObject(30, 69, 13, 1); // Receptionist 2
+        
+        // Information Area
+        setObject(22, 67, 10, 1); // Board
+        setObject(24, 67, 8, 1); // Plant
+        setObject(34, 67, 8, 1); // Plant
+        
+        // Waiting Lounge (Parallel sofas)
+        for (int c = 48; c <= 54; c += 2) {
+            setObject(c, 68, 16, 1); // Top row
+            setObject(c, 71, 16, 1); // Bottom row
+        }
+
+        // Vending Machines
+        setObject(22, 73, 9, 1);
+        setObject(23, 73, 9, 1);
+        
+        setObject(21, 74, 11, 0);
+        setObject(58, 74, 11, 0);
+    }
+
+    private void populateCorridor() {
+        // Add subtle details to the long corridor
+        setObject(36, 10, 9, 1); // Vending
+        setObject(43, 18, 8, 1); // Plant
+        setObject(36, 25, 10, 1); // Info board
+        setObject(43, 40, 9, 1); // Vending
+        setObject(36, 60, 8, 1); // Plant
+    }
+
+    private void polishWorld() {
+        // Ensure doors have zero collision
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                if (objects[r][c] == 6 || objects[r][c] == 7) {
+                    collision[r][c] = 0;
+                }
+            }
+        }
+    }
+
     public int[][] getFloor() { return floor; }
     public int[][] getObjects() { return objects; }
     public int[][] getCollision() { return collision; }
 }
+

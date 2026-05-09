@@ -88,28 +88,19 @@ public class PixelAssets {
             java.net.URL url = PixelAssets.class.getResource(path);
             if (url == null) {
                 System.err.println("❌ Could not find asset: " + path);
-                return createPlaceholder();
+                return null;
             }
             return ImageIO.read(url);
         } catch (Exception e) {
             System.err.println("❌ Error loading asset: " + path);
-            return createPlaceholder();
+            return null;
         }
-    }
-
-    private static BufferedImage createPlaceholder() {
-        BufferedImage bi = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = bi.createGraphics();
-        g2.setColor(java.awt.Color.MAGENTA);
-        g2.fillRect(0, 0, 16, 16);
-        g2.dispose();
-        return bi;
     }
 
     public static BufferedImage loadAndScale(String path, int targetW, int targetH) {
         try {
             java.net.URL url = PixelAssets.class.getResource(path);
-            if (url == null) return createPlaceholder();
+            if (url == null) return null;
             ImageIcon icon = new ImageIcon(url);
             BufferedImage bi = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2 = bi.createGraphics();
@@ -118,7 +109,7 @@ public class PixelAssets {
             g2.dispose();
             return bi;
         } catch (Exception e) {
-            return createPlaceholder();
+            return null;
         }
     }
 }

@@ -105,62 +105,108 @@ public class Lecturer extends GameObject {
         this.pathFinder = pf;
     }
 
+    private int patrolTargetR = -1;
+    private int patrolTargetC = -1;
+    private int state = 0; // 0 = PATROL, 1 = CHASE
+    private int stuckTick = 0;
+    private double lastX, lastY;
+
     public void updateAI(Player player, java.util.List<Lecturer> lecturers, List<Rectangle> obstacles) {
         double dx = player.getX() - exactX;
         double dy = player.getY() - exactY;
-        double dist = Math.sqrt(dx * dx + dy * dy);
+        double distToPlayer = Math.sqrt(dx * dx + dy * dy);
 
-        // Pathfinding update every 15 ticks (Faster response)
+        int currentR = (int) (exactY + height / 2) / 64;
+        int currentC = (int) (exactX + width / 2) / 64;
+        
         pathTick++;
-        if (pathTick % 15 == 0 || currentPath == null || currentPath.isEmpty()) {
+        
+        // Anti-Stuck mechanism
+        if (pathTick % 30 == 0) {
+            if (Math.abs(exactX - lastX) < 2 && Math.abs(exactY - lastY) < 2) {
+                stuckTick++;
+            } else {
+                stuckTick = 0;
+            }
+            lastX = exactX;
+            lastY = exactY;
+        }
+
+        // STATE LOGIC
+        if (distToPlayer < 400) { // Chase when player is nearby
+            state = 1; 
+        } else if (distToPlayer > 600) { // Stop chasing when far away
+            state = 0; 
+        }
+
+        // PATH GENERATION
+        if (pathTick % 15 == 0 || currentPath == null || currentPath.isEmpty() || stuckTick > 2) {
             if (pathFinder != null) {
-                int startR = (int) (exactY + height / 2) / 64;
-                int startC = (int) (exactX + width / 2) / 64;
-                int targetR = (int) (player.getY() + player.getHeight() / 2) / 64;
-                int targetC = (int) (player.getX() + player.getWidth() / 2) / 64;
-                
-                currentPath = pathFinder.findPath(startR, startC, targetR, targetC);
+                if (state == 1) { // CHASE PLAYER
+                    int targetR = (int) (player.getY() + player.getHeight() / 2) / 64;
+                    int targetC = (int) (player.getX() + player.getWidth() / 2) / 64;
+                    currentPath = pathFinder.findPath(currentR, currentC, targetR, targetC);
+                } else { // PATROL CORRIDOR NATURALLY
+                    // If no target, or reached target, or stuck
+                    if (patrolTargetR == -1 || (currentR == patrolTargetR && currentC == patrolTargetC) || stuckTick > 2) {
+                        // Pick random valid tile on the map to patrol to
+                        int mapRows = 75;
+                        int mapCols = 75;
+                        for (int attempts = 0; attempts < 50; attempts++) {
+                            int tr = (int)(Math.random() * mapRows);
+                            int tc = (int)(Math.random() * mapCols);
+                            if (pathFinder.isWalkable(tr, tc)) {
+                                patrolTargetR = tr;
+                                patrolTargetC = tc;
+                                break;
+                            }
+                        }
+                    }
+                    if (patrolTargetR != -1) {
+                        currentPath = pathFinder.findPath(currentR, currentC, patrolTargetR, patrolTargetC);
+                    }
+                }
+                stuckTick = 0;
             }
         }
 
         double targetDx = 0;
         double targetDy = 0;
 
-        // Increased detection radius for CHASE
-        if (dist < 800 && currentPath != null && !currentPath.isEmpty()) { 
+        if (currentPath != null && !currentPath.isEmpty()) {
             int[] nextStep = currentPath.get(0);
-            if (currentPath.size() > 1) {
-                double stepX = nextStep[1] * 64 + 32;
-                double stepY = nextStep[0] * 64 + 32;
-                if (Math.abs(exactX + width/2 - stepX) < 15 && Math.abs(exactY + height/2 - stepY) < 15) {
-                    currentPath.remove(0);
-                    if (!currentPath.isEmpty()) nextStep = currentPath.get(0);
+            double stepX = nextStep[1] * 64 + 32;
+            double stepY = nextStep[0] * 64 + 32;
+            
+            // If close to waypoint, remove it and proceed to next
+            if (Math.abs(exactX + width/2 - stepX) < 15 && Math.abs(exactY + height/2 - stepY) < 15) {
+                currentPath.remove(0);
+                if (!currentPath.isEmpty()) {
+                    nextStep = currentPath.get(0);
+                    stepX = nextStep[1] * 64 + 32;
+                    stepY = nextStep[0] * 64 + 32;
                 }
             }
             
-            double stepX = nextStep[1] * 64 + 32;
-            double stepY = nextStep[0] * 64 + 32;
-            double angle = Math.atan2(stepY - (exactY + height/2), stepX - (exactX + width/2));
-            targetDx = Math.cos(angle);
-            targetDy = Math.sin(angle);
-            isMoving = true;
-            
-            // Speed up when chasing
-            speed = 5.0;
-        } else { // PATROL (Persistent)
-            if (Math.random() < 0.05 || targetDx == 0 && targetDy == 0) {
-                double angle = Math.random() * Math.PI * 2;
+            if (!currentPath.isEmpty()) {
+                double angle = Math.atan2(stepY - (exactY + height/2), stepX - (exactX + width/2));
                 targetDx = Math.cos(angle);
                 targetDy = Math.sin(angle);
+                isMoving = true;
+            } else {
+                isMoving = false;
             }
-            isMoving = true;
-            speed = 2.5;
+        } else {
+            isMoving = false;
+            patrolTargetR = -1; // Force new target next tick if path failed
         }
+
+        speed = (state == 1) ? 4.5 : 2.0;
 
         double nextX = exactX + targetDx * speed;
         double nextY = exactY + targetDy * speed;
 
-        // Improved Collision check with sliding
+        // Collision check (Dosen cannot walk through walls, desks, etc.)
         Rectangle nextBoundsX = new Rectangle((int)nextX + 10, (int)exactY + 20, width - 20, height - 24);
         Rectangle nextBoundsY = new Rectangle((int)exactX + 10, (int)nextY + 20, width - 20, height - 24);
         
