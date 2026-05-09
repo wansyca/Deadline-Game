@@ -13,7 +13,7 @@ import java.util.Map;
 public class PlayerService {
 
     public int createPlayer(String username, String avatar) {
-        // 🚫 Cegah duplicate
+
         int existingId = getPlayerIdByUsername(username);
         if (existingId != -1) {
             return existingId;

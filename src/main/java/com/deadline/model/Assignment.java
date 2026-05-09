@@ -11,8 +11,8 @@ public class Assignment extends GameObject {
     private int animTick = 0;
 
     public Assignment(int x, int y) {
-        // Use 64x64 for the pixel art size
-        super(x, y, 64, 64);
+        // Use 80x80 for the pixel art size
+        super(x, y, 80, 80);
     }
 
     @Override

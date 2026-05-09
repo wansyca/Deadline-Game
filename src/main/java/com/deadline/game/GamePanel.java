@@ -10,6 +10,7 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.AlphaComposite;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -25,7 +26,7 @@ import java.util.Random;
 
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import javax.swing.Timer;
+import javax.swing.Timer; 
 
 import com.deadline.audio.SoundManager;
 import com.deadline.main.Main;
@@ -43,7 +44,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     // MAP GRID SYSTEM
     private static final int TILE_SIZE = 64;
-    private static final int MAP_COLS = 42;
+    private static final int MAP_COLS = 59;
     private static final int MAP_ROWS = 35;
     private static final int WORLD_WIDTH = MAP_COLS * TILE_SIZE;
     private static final int WORLD_HEIGHT = MAP_ROWS * TILE_SIZE;
@@ -73,8 +74,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private int survivalTime = 0;
     private int ticks = 0;
     private int collectedBooks = 0;
-    private int totalBooksCollected = 0;
-    private int currentLevel = 1;
+    public static int totalBooksCollected = 0;
+    private int pendingBooksToSpawn = 0;
+    private int bookSpawnDelayCounter = 0;
+    public static int currentLevel = 1;
     private int targetBooks = 10;
     private int timeLeft = 60;
     private int spawnTickCounter = 0;
@@ -213,12 +216,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             attempts++;
             int r = random.nextInt(MAP_ROWS);
             int c = random.nextInt(MAP_COLS);
-            
+
             // Far spawn check & corridor check
             double dx = (c * TILE_SIZE) - player.getX();
             double dy = (r * TILE_SIZE) - player.getY();
-            double dist = Math.sqrt(dx*dx + dy*dy);
-            
+            double dist = Math.sqrt(dx * dx + dy * dy);
+
             // Spawn ONLY in corridor/lobby (mapFloor == 0) and not near player
             if (dist > 600 && mapFloor[r][c] == 0 && mapObject[r][c] == 0) {
                 sx = c * TILE_SIZE;
@@ -239,10 +242,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         targetBooks = 10 + (currentLevel - 1) * 5; // 10, 15, 20...
         collectedBooks = 0;
         timeLeft = 60; // Reset timer for new level
-        
-        generateMap(); 
+
+        generateMap();
         SoundManager.playBookSound();
-        
+
         System.out.println("🚀 Level Up! Now Level: " + currentLevel + " (Need " + targetBooks + " books)");
     }
 
@@ -259,17 +262,19 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         targetBooks = 10;
         timeLeft = 60;
         spawnTickCounter = 0;
-        dosenSpawnInterval = 3600; 
-        
+        dosenSpawnInterval = 3600;
+
         generateMap();
 
         if (player == null) {
             player = new Player(WORLD_WIDTH / 2, WORLD_HEIGHT / 2);
         }
 
-        // Safe spawn for player (Center of Lobby)
-        player.setX(WORLD_WIDTH / 2);
-        player.setY(WORLD_HEIGHT / 2);
+        // Safely spawn in the center of the corridor to avoid being stuck in the void
+        int spawnX = 30 * TILE_SIZE;
+        int spawnY = 18 * TILE_SIZE;
+        player.setX(spawnX);
+        player.setY(spawnY);
         player.resetCarriedAssignments();
 
         actualCamX = player.getX() - (WIDTH / currentZoom) / 2;
@@ -277,11 +282,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         lecturers = new ArrayList<>();
         assignments = new ArrayList<>();
+        pendingBooksToSpawn = 0;
+        bookSpawnDelayCounter = 0;
 
-        // Start with 0 lecturers (Rule: 1 collected book = 1 dosen)
-        
-        // Spawn initial assignments
-        for (int i = 0; i < 20; i++) spawnAssignment();
+        // Spawn initial 10 books distributed across the map rooms
+        for (int i = 0; i < 10; i++) {
+            spawnAssignment();
+        }
     }
 
     private PathFinder pathFinder;
@@ -290,7 +297,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         obstacles = new ArrayList<>();
         MapGenerator mg = new MapGenerator(MAP_ROWS, MAP_COLS);
         mg.generate();
-        
+
         mapFloor = mg.getFloor();
         mapObject = mg.getObjects();
         int[][] collisionData = mg.getCollision();
@@ -333,20 +340,25 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private BufferedImage loadOriginalImage(String path) {
         try {
             java.net.URL url = getClass().getResource(path);
-            if (url == null) return null;
+            if (url == null)
+                return null;
             ImageIcon icon = new ImageIcon(url);
-            BufferedImage bi = new BufferedImage(icon.getIconWidth(), icon.getIconHeight(), BufferedImage.TYPE_INT_ARGB);
+            BufferedImage bi = new BufferedImage(icon.getIconWidth(), icon.getIconHeight(),
+                    BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2 = bi.createGraphics();
             g2.drawImage(icon.getImage(), 0, 0, null);
             g2.dispose();
             return bi;
-        } catch (Exception e) { return null; }
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private BufferedImage loadAndScale(String path, int w, int h) {
         try {
             java.net.URL url = getClass().getResource(path);
-            if (url == null) return null;
+            if (url == null)
+                return null;
             ImageIcon icon = new ImageIcon(url);
             BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2 = bi.createGraphics();
@@ -354,14 +366,18 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             g2.drawImage(icon.getImage(), 0, 0, w, h, null);
             g2.dispose();
             return bi;
-        } catch (Exception e) { return null; }
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void updateButtonBounds() {
         int panelW = getWidth();
         int panelH = getHeight();
-        if (panelW <= 0) panelW = WIDTH;
-        if (panelH <= 0) panelH = HEIGHT;
+        if (panelW <= 0)
+            panelW = WIDTH;
+        if (panelH <= 0)
+            panelH = HEIGHT;
 
         int btnW = 170, btnH = 55, gap = 20;
         int totalW = (btnW * 2) + gap;
@@ -370,36 +386,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
         btnRetry = new Rectangle(startX, btnY, btnW, btnH);
         btnMenu = new Rectangle(startX + btnW + gap, btnY, btnW, btnH);
-        btnExitGame = new Rectangle(panelW - 130, 25, 100, 40);
+        // Anchor EXIT to the dynamic right edge
+        btnExitGame = new Rectangle(panelW - 120, 20, 100, 40);
     }
 
-    private int assignmentZone = 0; // Tracks which zone to spawn the next book
-
-    private void spawnAssignment() {
-        Assignment a = null;
-        boolean safeSpawn = false;
-        int attempts = 0;
-        
-        while (!safeSpawn && attempts < 500) {
-            attempts++;
-            int r = random.nextInt(MAP_ROWS);
-            int c = random.nextInt(MAP_COLS);
-            
-            // Cycle through floor zones to distribute naturally
-            // 1: Lab/Restroom, 2: Library, 3: Classroom/Lecturer, 0: Corridor/Lobby
-            int targetFloor = (assignmentZone % 4); 
-            
-            if (mapFloor[r][c] == targetFloor && mapObject[r][c] == 0) {
-                a = new Assignment(c * TILE_SIZE, r * TILE_SIZE);
-                safeSpawn = true;
-                assignmentZone++;
-            }
-        }
-        
-        if (a != null) assignments.add(a);
+    public void playGameOverSound() {
+        SoundManager.playGameOverSound();
     }
-
-    public void playGameOverSound() { SoundManager.playGameOverSound(); }
 
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -409,30 +402,52 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     private void updateGame() {
         if (isGameOver) {
-            if (!soundPlayed) { playGameOverSound(); soundPlayed = true; }
+            if (!soundPlayed) {
+                playGameOverSound();
+                soundPlayed = true;
+            }
             return;
         }
 
         ticks++;
         if (ticks % FPS == 0) {
             survivalTime++;
-            if (timeLeft > 0) timeLeft--;
+            if (timeLeft > 0)
+                timeLeft--;
         }
 
         int dx = 0, dy = 0;
-        if (up) dy--; if (down) dy++; if (left) dx--; if (right) dx++;
+        if (up)
+            dy--;
+        if (down)
+            dy++;
+        if (left)
+            dx--;
+        if (right)
+            dx++;
 
         player.setDirection(dx, dy);
         player.update();
-        for (Assignment a : assignments) a.update();
+        for (Assignment a : assignments)
+            a.update();
 
         player.applyMoveX();
-        if (player.getX() < 0 || player.getX() > WORLD_WIDTH - player.getWidth()) player.rollbackX();
-        for (Rectangle rect : obstacles) if (player.getBounds().intersects(rect)) { player.rollbackX(); break; }
+        if (player.getX() < 0 || player.getX() > WORLD_WIDTH - player.getWidth())
+            player.rollbackX();
+        for (Rectangle rect : obstacles)
+            if (player.getBounds().intersects(rect)) {
+                player.rollbackX();
+                break;
+            }
 
         player.applyMoveY();
-        if (player.getY() < 0 || player.getY() > WORLD_HEIGHT - player.getHeight()) player.rollbackY();
-        for (Rectangle rect : obstacles) if (player.getBounds().intersects(rect)) { player.rollbackY(); break; }
+        if (player.getY() < 0 || player.getY() > WORLD_HEIGHT - player.getHeight())
+            player.rollbackY();
+        for (Rectangle rect : obstacles)
+            if (player.getBounds().intersects(rect)) {
+                player.rollbackY();
+                break;
+            }
 
         for (Lecturer l : lecturers) {
             l.updateAI(player, lecturers, obstacles);
@@ -441,7 +456,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 isGameOver = true;
                 if (!scoreSaved) {
                     scoreSaved = true;
-                    new Thread(() -> { saveFinalScore(); loadLeaderboardFromDB(); }).start();
+                    new Thread(() -> {
+                        saveFinalScore();
+                        loadLeaderboardFromDB();
+                    }).start();
                 }
             }
         }
@@ -449,19 +467,32 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         for (int i = 0; i < assignments.size(); i++) {
             Assignment a = assignments.get(i);
             a.update();
-            if (player.intersects(a)) { collectBook(i); i--; }
+            if (player.intersects(a)) {
+                collectBook(i);
+                i--;
+            }
+        }
+
+        // Handle delayed spawning of new books
+        if (pendingBooksToSpawn > 0) {
+            bookSpawnDelayCounter++;
+            if (bookSpawnDelayCounter >= 60) { // 1 second delay
+                spawnAssignment();
+                pendingBooksToSpawn--;
+                bookSpawnDelayCounter = 0;
+            }
         }
 
         // --- CAMERA SYSTEM ---
-        targetZoom = 1.4;
+        targetZoom = 0.85; // Less zoom to see more of the campus
         currentZoom += (targetZoom - currentZoom) * 0.1;
 
         int viewW = (int) (getWidth() / currentZoom);
         int viewH = (int) (getHeight() / currentZoom);
-        
+
         int targetCamX = player.getX() - viewW / 2;
         int targetCamY = player.getY() - viewH / 2;
-        
+
         // Clamp camera
         targetCamX = Math.max(0, Math.min(targetCamX, WORLD_WIDTH - viewW));
         targetCamY = Math.max(0, Math.min(targetCamY, WORLD_HEIGHT - viewH));
@@ -469,13 +500,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         // Smooth camera movement
         actualCamX += (targetCamX - actualCamX) * 0.1;
         actualCamY += (targetCamY - actualCamY) * 0.1;
-        
+
         camX = (int) actualCamX;
         camY = (int) actualCamY;
     }
 
     private void collectBook(int index) {
-        if (index < 0 || index >= assignments.size()) return;
+        if (index < 0 || index >= assignments.size())
+            return;
         SoundManager.playBookSound();
         collectedBooks++;
         totalBooksCollected++;
@@ -484,14 +516,54 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (collectedBooks >= targetBooks) {
             levelUp();
         }
-        
+
         // STRICT RULE: 1 BOOK = 1 DOSEN (Max 5 total, regardless of level)
         int targetDosen = Math.min(totalBooksCollected, 5);
         while (lecturers.size() < targetDosen) {
             spawnLecturer();
         }
-        
-        spawnAssignment();
+
+        // Mark that a new book needs to be spawned with a delay
+        pendingBooksToSpawn++;
+    }
+
+    private void spawnAssignment() {
+        // Find a valid spot: empty floor (mapObject == 0) and within building
+        // (mapObject != 99)
+        java.util.List<int[]> validSpots = new java.util.ArrayList<>();
+        for (int r = 0; r < MAP_ROWS; r++) {
+            for (int c = 0; c < MAP_COLS; c++) {
+                // mapObject 0 is empty floor, anything else is furniture/walls
+                if (mapObject[r][c] == 0) {
+                    // Check distance from player to avoid spawning on top of them
+                    double dx = (c * TILE_SIZE) - player.getX();
+                    double dy = (r * TILE_SIZE) - player.getY();
+                    double dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > 300) { // Don't spawn right next to player
+                        validSpots.add(new int[] { r, c });
+                    }
+                }
+            }
+        }
+
+        if (!validSpots.isEmpty()) {
+            // Shuffle to pick a truly random spot
+            java.util.Collections.shuffle(validSpots);
+            for (int[] spot : validSpots) {
+                // Double check if an assignment already exists at this exact tile
+                boolean exists = false;
+                for (Assignment a : assignments) {
+                    if ((int) a.getX() / 64 == spot[1] && (int) a.getY() / 64 == spot[0]) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    assignments.add(new Assignment(spot[1] * TILE_SIZE, spot[0] * TILE_SIZE));
+                    break;
+                }
+            }
+        }
     }
 
     @Override
@@ -499,8 +571,11 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
 
+        // SAVE BASE TRANSFORM (Important for High-DPI screens!)
+        java.awt.geom.AffineTransform baseTransform = g2.getTransform();
+
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-        
+
         g2.scale(currentZoom, currentZoom);
         g2.translate(-camX, -camY);
 
@@ -517,13 +592,22 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             for (int c = startCol; c < endCol; c++) {
                 int tile = mapFloor[r][c];
                 BufferedImage img = null;
-                switch(tile) {
-                    case 0: img = PixelAssets.imgFloorWhite; break;
-                    case 1: img = PixelAssets.imgFloorLab; break;
-                    case 2: img = PixelAssets.imgFloorLibrary; break;
-                    case 3: img = PixelAssets.imgFloorDark; break;
+                switch (tile) {
+                    case 0:
+                        img = PixelAssets.imgFloorWhite;
+                        break;
+                    case 1:
+                        img = PixelAssets.imgFloorLab;
+                        break;
+                    case 2:
+                        img = PixelAssets.imgFloorLibrary;
+                        break;
+                    case 3:
+                        img = PixelAssets.imgFloorDark;
+                        break;
                 }
-                if (img != null) g2.drawImage(img, c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE, null);
+                if (img != null)
+                    g2.drawImage(img, c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE, null);
             }
         }
 
@@ -531,37 +615,99 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         for (int r = startRow; r < endRow; r++) {
             for (int c = startCol; c < endCol; c++) {
                 int obj = mapObject[r][c];
-                if (obj == 0) continue;
+                if (obj == 0)
+                    continue;
                 BufferedImage img = null;
                 boolean isFurn = false;
-                switch(obj) {
-                    case 1: img = PixelAssets.imgWallTop; break;
-                    case 2: img = PixelAssets.imgWallSide; break;
-                    case 3: img = PixelAssets.imgWallCenter; break;
-                    case 4: img = PixelAssets.imgCornerLeft; break;
-                    case 5: img = PixelAssets.imgCornerRight; break;
-                    case 6: img = PixelAssets.imgDoorClass; break;
-                    case 7: img = PixelAssets.imgDoorLabLibrary; break;
-                    case 8: img = PixelAssets.imgPlant; isFurn = true; break;
-                    case 9: img = PixelAssets.imgVending; isFurn = true; break;
-                    case 10: img = PixelAssets.imgBoard; isFurn = true; break;
-                    case 11: img = PixelAssets.imgLamp; isFurn = true; break;
-                    case 12: img = PixelAssets.imgMeja; isFurn = true; break;
-                    case 13: img = PixelAssets.imgKursi; isFurn = true; break;
-                    case 14: img = PixelAssets.imgMejaLab; isFurn = true; break;
-                    case 15: img = PixelAssets.imgRakBuku; isFurn = true; break;
-                    case 16: img = PixelAssets.imgBangkuLobby; isFurn = true; break;
-                    case 17: img = PixelAssets.imgMejaDosen; isFurn = true; break;
-                    case 18: img = PixelAssets.imgWallBottom; break;
+                switch (obj) {
+                    case 1:
+                        img = PixelAssets.imgWallTop;
+                        break;
+                    case 2:
+                        img = PixelAssets.imgWallSide;
+                        break;
+                    case 3:
+                        img = PixelAssets.imgWallCenter;
+                        break;
+                    case 4:
+                        img = PixelAssets.imgCornerLeft;
+                        break;
+                    case 5:
+                        img = PixelAssets.imgCornerRight;
+                        break;
+                    case 6:
+                        img = PixelAssets.imgDoorClass;
+                        break;
+                    case 7:
+                        img = PixelAssets.imgDoorLabLibrary;
+                        break;
+                    case 8:
+                        img = PixelAssets.imgPlant;
+                        isFurn = true;
+                        break;
+                    case 9:
+                        img = PixelAssets.imgVending;
+                        isFurn = true;
+                        break;
+                    case 10:
+                        img = PixelAssets.imgBoard;
+                        isFurn = true;
+                        break;
+                    case 11:
+                        img = PixelAssets.imgLamp;
+                        isFurn = true;
+                        break;
+                    case 12:
+                        img = PixelAssets.imgMeja;
+                        isFurn = true;
+                        break;
+                    case 13:
+                        img = PixelAssets.imgKursi;
+                        isFurn = true;
+                        break;
+                    case 14:
+                        img = PixelAssets.imgMejaLab;
+                        isFurn = true;
+                        break;
+                    case 15:
+                        img = PixelAssets.imgRakBuku;
+                        isFurn = true;
+                        break;
+                    case 16:
+                        img = PixelAssets.imgBangkuLobby;
+                        isFurn = true;
+                        break;
+                    case 17:
+                        img = PixelAssets.imgMejaDosen;
+                        isFurn = true;
+                        break;
+                    case 18:
+                        img = PixelAssets.imgWallBottom;
+                        break;
                 }
                 if (img != null) {
-                    if (isFurn) {
-                        int fw = (int)(TILE_SIZE * 1.5);
-                        int fh = (int)(TILE_SIZE * 1.5);
-                        int fx = c * TILE_SIZE - (fw - TILE_SIZE) / 2;
-                        int fy = r * TILE_SIZE - (fh - TILE_SIZE);
-                        if (obj == 10) fy = r * TILE_SIZE - (fh - TILE_SIZE) / 2;
-                        g2.drawImage(img, fx, fy, fw, fh, null);
+                    if (isFurn || obj == 6 || obj == 7) {
+                        if (obj == 6 || obj == 7) {
+                            // Door logic: Draw a 2-tile wide door if this is the start of one
+                            if (c > 0 && mapObject[r][c - 1] == obj)
+                                continue;
+
+                            int fw = TILE_SIZE * 2;
+                            int fh = (int) (TILE_SIZE * 2.2); // Slightly taller for proportion
+                            int fx = c * TILE_SIZE;
+                            int fy = r * TILE_SIZE - TILE_SIZE - 2; // Aligned with wall
+                            g2.drawImage(img, fx, fy, fw, fh, null);
+                        } else {
+                            // Furniture logic
+                            double scale = 1.8;
+                            int fw = (int) (TILE_SIZE * scale);
+                            int fh = (int) (TILE_SIZE * scale);
+                            int fx = c * TILE_SIZE - (fw - TILE_SIZE) / 2;
+                            int fy = r * TILE_SIZE - (fh - TILE_SIZE);
+                            if (obj == 10)
+                                fy = r * TILE_SIZE - (fh - TILE_SIZE) / 2;
+                            g2.drawImage(img, fx, fy, fw, fh, null);
+                        }
                     } else {
                         g2.drawImage(img, c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE, null);
                     }
@@ -569,105 +715,112 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             }
         }
 
-        for (Assignment a : assignments) a.draw(g2);
-        for (Lecturer l : lecturers) { l.setPathFinder(pathFinder); l.draw(g2); }
+        for (Assignment a : assignments)
+            a.draw(g2);
+        for (Lecturer l : lecturers) {
+            l.setPathFinder(pathFinder);
+            l.draw(g2);
+        }
+
+        // --- LIGHTING (SCREEN SPACE) ---
+        applyLighting(g2, camX, camY, baseTransform);
+
+        // 4. Render player (on top of darkness overlay, so player remains bright)
         player.draw(g2);
-            g2.translate(camX, camY);
-        applyLighting(g2);
-        g2.scale(1.0/currentZoom, 1.0/currentZoom);
+
+        // 5. Render seluruh UI
+        g2.setTransform(baseTransform); // RESTORE BASE TRANSFORM FOR UI
         drawUI(g2);
     }
 
-    private void applyLighting(Graphics2D g2) {
+    private void applyLighting(Graphics2D g2, int camX, int camY, java.awt.geom.AffineTransform baseTransform) {
+        // Save world transform to restore later
+        java.awt.geom.AffineTransform worldTransform = g2.getTransform();
+        
+        // Use baseTransform to honor DPI scaling while removing camera translation/zoom
+        g2.setTransform(baseTransform);
+
         int w = getWidth();
         int h = getHeight();
+        if (w <= 0) w = WIDTH;
+        if (h <= 0) h = HEIGHT;
+
+        // 1. CREATE LIGHTING MASK
+        BufferedImage lightingMask = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gM = lightingMask.createGraphics();
+        gM.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // 2. FULLSCREEN DARKNESS OVERLAY (Merata 50% transparent black)
+        gM.setColor(new Color(0, 0, 0, 128)); // 50% opacity
+        gM.fillRect(0, 0, w, h);
+
+        // 3. BULAT LUBANG CAHAYA (Punched out hole for player)
+        gM.setComposite(AlphaComposite.DstOut);
         
-        BufferedImage overlay = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D gL = overlay.createGraphics();
+        int px = (int) ((player.getX() - camX + player.getWidth() / 2) * currentZoom);
+        int py = (int) ((player.getY() - camY + player.getHeight() / 2) * currentZoom);
         
-        // 1. INKY CINEMATIC AMBIENCE (Deep Midnight Blue-Black for Dark Academia Stealth)
-        gL.setColor(new Color(4, 4, 12, 235)); 
-        gL.fillRect(0, 0, w, h);
+        float spotlightRadius = (float) (400 * currentZoom);
         
-        // 2. LIGHT SOURCE SUBTRACTION (Punches holes in darkness to reveal map)
-        gL.setComposite(java.awt.AlphaComposite.DstOut);
+        // Soft radial gradient for smooth light
+        float[] spotDist = { 0.0f, 0.4f, 1.0f };
+        Color[] spotColors = { 
+            new Color(0, 0, 0, 255), // Center: Perfectly Clear
+            new Color(0, 0, 0, 150), // Mid: Softening
+            new Color(0, 0, 0, 0)    // Edge: Fading
+        };
         
-        // A. PLAYER SPOTLIGHT (Tense and focused flashlight)
-        int px = (int)((player.getX() - camX + player.getWidth()/2) * currentZoom);
-        int py = (int)((player.getY() - camY + player.getHeight()/2) * currentZoom);
-        drawPunchHole(gL, px, py, (int)(320 * currentZoom)); 
+        java.awt.RadialGradientPaint rgp = new java.awt.RadialGradientPaint(
+                new Point(px, py), spotlightRadius, spotDist, spotColors);
+        gM.setPaint(rgp);
         
-        // B. WORLD LIGHT SOURCES
+        // Fill entire screen to avoid any bounding box/square artifacts
+        gM.fillRect(0, 0, w, h);
+        gM.dispose();
+
+        // 4. DRAW MASK ONTO SCREEN
+        g2.drawImage(lightingMask, 0, 0, null);
+
+        // RESTORE WORLD TRANSFORM FOR AMBIENT GLOWS
+        g2.setTransform(worldTransform);
+
+        // 5. AMBIENT GLOWS (Lamps, Vending, etc.)
         int startCol = Math.max(0, camX / TILE_SIZE);
         int startRow = Math.max(0, camY / TILE_SIZE);
-        int endCol = Math.min(MAP_COLS, (camX + (int)(w/currentZoom)) / TILE_SIZE + 2);
-        int endRow = Math.min(MAP_ROWS, (camY + (int)(h/currentZoom)) / TILE_SIZE + 2);
+        int endCol = Math.min(MAP_COLS, (camX + (int) (w / currentZoom)) / TILE_SIZE + 2);
+        int endRow = Math.min(MAP_ROWS, (camY + (int) (h / currentZoom)) / TILE_SIZE + 2);
 
         for (int r = startRow; r < endRow; r++) {
             for (int c = startCol; c < endCol; c++) {
-                int lx = (int)((c * TILE_SIZE - camX + TILE_SIZE / 2) * currentZoom);
-                int ly = (int)((r * TILE_SIZE - camY + TILE_SIZE / 2) * currentZoom);
-                
                 int obj = mapObject[r][c];
-                if (obj == 11) { // LAMP
-                    drawPunchHole(gL, lx, ly, (int)(220 * currentZoom));
-                } else if (obj == 9) { // VENDING
-                    drawPunchHole(gL, lx, ly, (int)(150 * currentZoom));
-                } else if (obj == 14) { // PC 
-                    drawPunchHole(gL, lx, ly, (int)(100 * currentZoom));
+                if (obj == 11 || obj == 9 || obj == 14) {
+                    // Coordinates in WORLD space (no camX/camY offsets needed, just world coordinates)
+                    int lx = c * TILE_SIZE + TILE_SIZE / 2;
+                    int ly = r * TILE_SIZE + TILE_SIZE / 2;
+                    
+                    // Natural warm glows (sizes unscaled since worldTransform scales them automatically)
+                    if (obj == 11) drawColorGlow(g2, lx, ly, 240, new Color(255, 200, 100, 45));
+                    if (obj == 9)  drawColorGlow(g2, lx, ly, 160, new Color(0, 150, 255, 35));
+                    if (obj == 14) drawColorGlow(g2, lx, ly, 120, new Color(150, 255, 255, 25));
                 }
             }
         }
-
-        gL.dispose();
-        
-        // Render darkness to screen
-        g2.drawImage(overlay, 0, 0, null);
-        
-        // 3. COLOR TINT OVERLAYS (Additive Warm/Cold Glows)
-        g2.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, 1.0f));
-        for (int r = startRow; r < endRow; r++) {
-            for (int c = startCol; c < endCol; c++) {
-                int lx = (int)((c * TILE_SIZE - camX + TILE_SIZE / 2) * currentZoom);
-                int ly = (int)((r * TILE_SIZE - camY + TILE_SIZE / 2) * currentZoom);
-                
-                int obj = mapObject[r][c];
-                if (obj == 11) { // LAMP (Warm Amber Glow)
-                    drawColorGlow(g2, lx, ly, (int)(180 * currentZoom), new Color(255, 130, 20, 60));
-                } else if (obj == 9) { // VENDING (Cold Electronic Glow)
-                    drawColorGlow(g2, lx, ly, (int)(120 * currentZoom), new Color(40, 140, 255, 50));
-                } else if (obj == 14) { // PC (Faint Monitor Glow)
-                    drawColorGlow(g2, lx, ly, (int)(80 * currentZoom), new Color(160, 255, 255, 25));
-                }
-            }
-        }
-        
-        // 4. CINEMATIC VIGNETTE (Focusing the view for horror aesthetic)
-        float vignetteSize = 0.75f - (currentLevel - 1) * 0.05f;
-        if (vignetteSize < 0.4f) vignetteSize = 0.4f; // Hard limit
-
-        float[] dist = {0.3f, 1.0f};
-        Color[] colors = {new Color(0,0,0,0), new Color(0,0,0,250)};
-        java.awt.RadialGradientPaint rgp = new java.awt.RadialGradientPaint(
-            new Point(w/2, h/2), (float)w * vignetteSize, dist, colors);
-        g2.setPaint(rgp);
-        g2.fillRect(0, 0, w, h);
     }
 
     private void drawPunchHole(Graphics2D g2, int x, int y, int radius) {
-        float[] dist = {0.0f, 0.5f, 1.0f};
-        Color[] colors = {new Color(0,0,0,255), new Color(0,0,0,160), new Color(0,0,0,0)};
+        float[] dist = { 0.0f, 0.5f, 1.0f };
+        Color[] colors = { new Color(0, 0, 0, 255), new Color(0, 0, 0, 160), new Color(0, 0, 0, 0) };
         java.awt.RadialGradientPaint rgp = new java.awt.RadialGradientPaint(
-            new Point(x, y), radius, dist, colors);
+                new Point(x, y), radius, dist, colors);
         g2.setPaint(rgp);
         g2.fillOval(x - radius, y - radius, radius * 2, radius * 2);
     }
 
     private void drawColorGlow(Graphics2D g2, int x, int y, int radius, Color color) {
-        float[] dist = {0.0f, 1.0f};
-        Color[] colors = {color, new Color(color.getRed(), color.getGreen(), color.getBlue(), 0)};
+        float[] dist = { 0.0f, 1.0f };
+        Color[] colors = { color, new Color(color.getRed(), color.getGreen(), color.getBlue(), 0) };
         java.awt.RadialGradientPaint rgp = new java.awt.RadialGradientPaint(
-            new Point(x, y), radius, dist, colors);
+                new Point(x, y), radius, dist, colors);
         g2.setPaint(rgp);
         g2.fillOval(x - radius, y - radius, radius * 2, radius * 2);
     }
@@ -680,14 +833,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         // One Clean Pixel-Art UI Box (Minimalist Stealth Aesthetic)
         Color boxColor = new Color(0, 0, 0, 180);
         Color borderColor = new Color(255, 255, 255, 30); // Subtle border
-        
-        // 1. MAIN HUD BOX
-        int hudX = 25, hudY = 25, hudW = 220, hudH = 110;
+
+        // 1. MAIN HUD BOX (Slightly Larger)
+        int hudX = 25, hudY = 25, hudW = 240, hudH = 120;
         g.setColor(boxColor);
-        g.fillRoundRect(hudX, hudY, hudW, hudH, 8, 8);
+        g.fillRoundRect(hudX, hudY, hudW, hudH, 10, 10);
         g.setColor(borderColor);
-        g.setStroke(new BasicStroke(1.5f));
-        g.drawRoundRect(hudX, hudY, hudW, hudH, 8, 8);
+        g.setStroke(new BasicStroke(2.0f));
+        g.drawRoundRect(hudX, hudY, hudW, hudH, 10, 10);
 
         // Text rendering
         g.setColor(Color.WHITE);
@@ -707,32 +860,32 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         } else {
             g.setFont(new Font("Monospaced", Font.PLAIN, 12));
         }
-        
+
         // Row 2: Timer
-        String timeStr = String.format("TIME: %02d:%02d", timeLeft/60, timeLeft%60);
+        String timeStr = String.format("TIME: %02d:%02d", timeLeft / 60, timeLeft % 60);
         g.drawString(timeStr, hudX + 15, hudY + 55);
-        
+
         // Row 3: Books (Progress)
         g.setColor(new Color(200, 200, 200));
         g.drawString("BOOKS: " + collectedBooks + " / " + targetBooks, hudX + 15, hudY + 75);
-        
+
         // Row 4: Level (Emphasized)
         g.setColor(new Color(255, 215, 0)); // Gold/Yellow for visibility
         g.drawString("LVL. " + currentLevel, hudX + 15, hudY + 95);
-        
+
         // Subtle progress bar under Level
         g.setColor(new Color(40, 40, 40));
         g.fillRect(hudX + 80, hudY + 86, 120, 4);
         g.setColor(new Color(255, 215, 0));
-        int progW = (int)(120 * ((double)collectedBooks / targetBooks));
+        int progW = (int) (120 * ((double) collectedBooks / targetBooks));
         g.fillRect(hudX + 80, hudY + 86, progW, 4);
     }
 
     private void drawRadialGradient(Graphics2D g2, int x, int y, int radius, Color color) {
-        float[] dist = {0.0f, 1.0f};
-        Color[] colors = {color, new Color(color.getRed(), color.getGreen(), color.getBlue(), 0)};
+        float[] dist = { 0.0f, 1.0f };
+        Color[] colors = { color, new Color(color.getRed(), color.getGreen(), color.getBlue(), 0) };
         java.awt.RadialGradientPaint rgp = new java.awt.RadialGradientPaint(
-            new Point(x, y), radius, dist, colors);
+                new Point(x, y), radius, dist, colors);
         g2.setPaint(rgp);
         g2.fillOval(x - radius, y - radius, radius * 2, radius * 2);
     }
@@ -792,9 +945,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
             // 1. GAME OVER IMAGE (Much Smaller)
             if (gameOverImg != null) {
-                float scale = 0.35f; 
-                int tw = (int)(gameOverImg.getWidth() * scale);
-                int th = (int)(gameOverImg.getHeight() * scale);
+                float scale = 0.35f;
+                int tw = (int) (gameOverImg.getWidth() * scale);
+                int th = (int) (gameOverImg.getHeight() * scale);
                 int tx = (panelW - tw) / 2;
                 g2.drawImage(gameOverImg, tx, currentY, tw, th, null);
                 currentY += th + 15;

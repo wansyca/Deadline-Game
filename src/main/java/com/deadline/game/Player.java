@@ -211,8 +211,8 @@ public class Player extends GameObject {
         // PIXEL RENDERING HINT
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
-        // NORMALIZE SIZE: Scale everything to 64px height regardless of PNG resolution
-        int targetHeight = 64;
+        // NORMALIZE SIZE: Balanced height (approx 1.5 tiles)
+        int targetHeight = 100;
         int imgH = (image != null) ? image.getHeight() : 16;
         int imgW = (image != null) ? image.getWidth() : 16;
         

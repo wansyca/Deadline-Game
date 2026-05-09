@@ -37,7 +37,8 @@ public class Main {
             mainPanel = new JPanel(cardLayout = new CardLayout());
             mainPanel.setPreferredSize(new Dimension(width, height));
             
-            frame.setResizable(false);
+            frame.setResizable(true);
+            frame.setExtendedState(JFrame.MAXIMIZED_BOTH); // Start maximized for professional feel
 
             mainPanel.add(new DashboardPanel(), DASHBOARD);
             mainPanel.add(new InputPlayerPanel(), INPUT_PLAYER);

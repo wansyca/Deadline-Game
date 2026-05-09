@@ -8,13 +8,12 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 import javax.imageio.ImageIO;
 
-
 public class Lecturer extends GameObject {
 
     private int type;
     private double speed;
     private double exactX, exactY;
-    
+
     private BufferedImage up1, up2, down1, down2, left1, left2, right1, right2;
     private String direction = "down";
     private int spriteCounter = 0;
@@ -37,28 +36,39 @@ public class Lecturer extends GameObject {
     private void loadImages() {
         String folder = "";
         switch (type) {
-            case 0: folder = "dosen_tua"; break;
-            case 1: folder = "domu_cowo"; break;
-            case 2: folder = "dosen_cewe"; break;
-            default: folder = "dosen_tua";
+            case 0:
+                folder = "dosen_tua";
+                break;
+            case 1:
+                folder = "domu_cowo";
+                break;
+            case 2:
+                folder = "dosen_cewe";
+                break;
+            default:
+                folder = "dosen_tua";
         }
 
         String basePath = "/assets/dosen/" + folder + "/";
         up1 = loadSafely(basePath + "up/up_1.png");
         up2 = loadSafely(basePath + "up/up_2.png");
-        if (up2 == null) up2 = up1;
+        if (up2 == null)
+            up2 = up1;
 
         down1 = loadSafely(basePath + "down/down_1.png");
         down2 = loadSafely(basePath + "down/down_2.png");
-        if (down2 == null) down2 = down1;
+        if (down2 == null)
+            down2 = down1;
 
         left1 = loadSafely(basePath + "left/left_1.png");
         left2 = loadSafely(basePath + "left/left_2.png");
-        if (left2 == null) left2 = left1;
+        if (left2 == null)
+            left2 = left1;
 
         right1 = loadSafely(basePath + "right/right_1.png");
         right2 = loadSafely(basePath + "right/right_2.png");
-        if (right2 == null) right2 = right1;
+        if (right2 == null)
+            right2 = right1;
 
         // Fallback for left facing by flipping right facing
         if (left1 == null && right1 != null) {
@@ -73,12 +83,14 @@ public class Lecturer extends GameObject {
             if (is != null) {
                 return ImageIO.read(is);
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         return null;
     }
 
     private BufferedImage flipImage(BufferedImage src) {
-        if (src == null) return null;
+        if (src == null)
+            return null;
         int w = src.getWidth();
         int h = src.getHeight();
         BufferedImage dest = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
@@ -102,7 +114,8 @@ public class Lecturer extends GameObject {
         Player player = null;
         java.util.List<Lecturer> lecturers = null;
 
-        // Since we need references, we'll keep updateAI for now but call it from update() 
+        // Since we need references, we'll keep updateAI for now but call it from
+        // update()
         // IF we had a reference. However, GamePanel calls updateAI directly.
         // The real problem is update1() vs update().
     }
@@ -128,126 +141,152 @@ public class Lecturer extends GameObject {
 
         int currentR = (int) (exactY + height / 2) / 64;
         int currentC = (int) (exactX + width / 2) / 64;
-        
+
         pathTick++;
-        
-        // Anti-Stuck mechanism
-        if (pathTick % 30 == 0) {
-            if (Math.abs(exactX - lastX) < 2 && Math.abs(exactY - lastY) < 2) {
-                stuckTick++;
-            } else {
-                stuckTick = 0;
+
+        // Always chase the player aggressively
+        state = 1;
+
+        // Path recalculation frequency
+        int recalcInterval = 30; // Recalculate twice a second to avoid jitter
+        if (pathTick % recalcInterval == 0 || currentPath == null || currentPath.isEmpty()) {
+            int targetR = (int) (player.getY() + 32) / 64;
+            int targetC = (int) (player.getX() + 32) / 64;
+
+            // If player tile is blocked, find closest walkable
+            if (pathFinder != null && !pathFinder.isWalkable(targetR, targetC)) {
+                outer: for (int radius = 1; radius < 4; radius++) {
+                    for (int dr = -radius; dr <= radius; dr++) {
+                        for (int dc = -radius; dc <= radius; dc++) {
+                            if (pathFinder.isWalkable(targetR + dr, targetC + dc)) {
+                                targetR += dr;
+                                targetC += dc;
+                                break outer;
+                            }
+                        }
+                    }
+                }
             }
-            lastX = exactX;
-            lastY = exactY;
-        }
 
-        // STATE LOGIC
-        state = 1; // Always chase!
-
-        // PATH GENERATION (Optimized for smoothness)
-        boolean pathNeeded = false;
-        int targetR = (int) (player.getY() + player.getHeight() / 2) / 64;
-        int targetC = (int) (player.getX() + player.getWidth() / 2) / 64;
-
-        if (currentPath == null || currentPath.isEmpty() || stuckTick > 2 || pathTick % 15 == 0) {
-            pathNeeded = true;
-        } else {
-            // If chasing, only recalculate if player moved significantly from our path's end goal
-            int[] lastNode = currentPath.get(currentPath.size() - 1);
-            if (Math.abs(lastNode[0] - targetR) > 1 || Math.abs(lastNode[1] - targetC) > 1) {
-                pathNeeded = true;
+            if (pathFinder != null) {
+                currentPath = pathFinder.findPath(currentR, currentC, targetR, targetC);
+                // Prevent going back to the center of the current tile causing jitter
+                if (currentPath != null && currentPath.size() > 1) {
+                    int[] first = currentPath.get(0);
+                    if (first[0] == currentR && first[1] == currentC) {
+                        currentPath.remove(0);
+                    }
+                }
             }
-        }
-
-        if (pathNeeded && pathFinder != null) {
-            currentPath = pathFinder.findPath(currentR, currentC, targetR, targetC);
-            stuckTick = 0;
         }
 
         double targetDx = 0;
         double targetDy = 0;
 
+        // 3. MOVEMENT LOGIC
         if (currentPath != null && !currentPath.isEmpty()) {
             int[] nextStep = currentPath.get(0);
             double stepX = nextStep[1] * 64 + 32;
             double stepY = nextStep[0] * 64 + 32;
-            
-            // If close to waypoint, remove it and proceed to next
-            if (Math.abs(exactX + width/2 - stepX) < 15 && Math.abs(exactY + height/2 - stepY) < 15) {
+
+            // Move towards next waypoint
+            double adx = stepX - (exactX + 32);
+            double ady = stepY - (exactY + 32);
+            double distToStep = Math.sqrt(adx * adx + ady * ady);
+
+            // Smoothly transition to the next step without needing to hit dead center
+            if (distToStep < 20) {
                 currentPath.remove(0);
                 if (!currentPath.isEmpty()) {
                     nextStep = currentPath.get(0);
                     stepX = nextStep[1] * 64 + 32;
                     stepY = nextStep[0] * 64 + 32;
+                    adx = stepX - (exactX + 32);
+                    ady = stepY - (exactY + 32);
+                    distToStep = Math.sqrt(adx * adx + ady * ady);
                 }
             }
-            
-            if (!currentPath.isEmpty()) {
-                double angle = Math.atan2(stepY - (exactY + height/2), stepX - (exactX + width/2));
-                targetDx = Math.cos(angle);
-                targetDy = Math.sin(angle);
+
+            if (distToStep > 0) {
+                targetDx = adx / distToStep;
+                targetDy = ady / distToStep;
+            }
+            isMoving = true;
+        } else {
+            // FALLBACK: Move directly towards player if no path found
+            double adx = (player.getX() + 32) - (exactX + 32);
+            double ady = (player.getY() + 32) - (exactY + 32);
+            double dist = Math.sqrt(adx * adx + ady * ady);
+            if (dist > 5) {
+                targetDx = adx / dist;
+                targetDy = ady / dist;
                 isMoving = true;
             } else {
                 isMoving = false;
             }
-        } else {
-            // FALLBACK: Move directly towards player if path is empty
-            double angle = Math.atan2(player.getY() - exactY, player.getX() - exactX);
-            targetDx = Math.cos(angle);
-            targetDy = Math.sin(angle);
-            isMoving = true;
         }
 
-        speed = 4.5;
+        // 4. DYNAMIC DIFFICULTY & AGGRESSION
+        // Base speed 4.0
+        double baseSpeed = 4.0;
+        int level = GamePanel.currentLevel;
+        int books = GamePanel.totalBooksCollected;
+
+        // Scaling with level
+        baseSpeed += (level - 1) * 1.2;
+
+        // Scaling with books
+        if (books >= 9)
+            baseSpeed += 1.5; // High Aggression at 9 books
+        else if (books >= 5)
+            baseSpeed += 0.5;
+
+        this.speed = baseSpeed;
 
         double nextX = exactX + targetDx * speed;
         double nextY = exactY + targetDy * speed;
 
         // Collision check (Dosen cannot walk through walls, desks, etc.)
-        Rectangle nextBoundsX = new Rectangle((int)nextX + 10, (int)exactY + 20, width - 20, height - 24);
-        Rectangle nextBoundsY = new Rectangle((int)exactX + 10, (int)nextY + 20, width - 20, height - 24);
-        
+        // Made AI hitbox slightly smaller so they don't snag on wall corners while
+        // pathing
+        Rectangle nextBoundsX = new Rectangle((int) nextX + 16, (int) exactY + 24, width - 32, height - 32);
+        Rectangle nextBoundsY = new Rectangle((int) exactX + 16, (int) nextY + 24, width - 32, height - 32);
+
         boolean collisionX = false;
         boolean collisionY = false;
+
         for (Rectangle r : obstacles) {
             if (nextBoundsX.intersects(r)) collisionX = true;
             if (nextBoundsY.intersects(r)) collisionY = true;
         }
-        
-        // Prevent lecturer overlap
-        if (lecturers != null) {
-            for (Lecturer other : lecturers) {
-                if (other != this) {
-                    Rectangle otherBounds = other.getBounds();
-                    if (nextBoundsX.intersects(otherBounds)) collisionX = true;
-                    if (nextBoundsY.intersects(otherBounds)) collisionY = true;
-                }
-            }
-        }
 
-        if (!collisionX) exactX = nextX;
-        if (!collisionY) exactY = nextY;
+    if(!collisionX) exactX=nextX;
+    if(!collisionY) exactY=nextY;
 
-        if (isMoving) {
-            if (Math.abs(targetDx) >= Math.abs(targetDy)) {
-                direction = (targetDx > 0) ? "right" : "left";
-            } else {
-                direction = (targetDy > 0) ? "down" : "up";
-            }
+    if(isMoving)
 
-            spriteCounter++;
-            if (spriteCounter >= 8) {
-                spriteNum = (spriteNum == 1) ? 2 : 1;
-                spriteCounter = 0;
-            }
+    {
+        if (Math.abs(targetDx) >= Math.abs(targetDy)) {
+            direction = (targetDx > 0) ? "right" : "left";
         } else {
-            spriteNum = 1;
-            spriteCounter = 0;
+            //
+            direction = (targetDy > 0) ? "down" : "up";
         }
 
-        this.x = (int) Math.round(exactX);
-        this.y = (int) Math.round(exactY);
+        spriteCounter++;
+        if (spriteCounter >= 8) {
+            spriteNum = (spriteNum == 1) ? 2 : 1;
+            spriteCounter = 0;
+
+        }
+
+    }else
+    {
+        spriteNum = 1;
+        spriteCounter = 0;
+    }
+
+    this.x=(int)Math.round(exactX);this.y=(int)Math.round(exactY);
     }
 
     @Override
@@ -264,8 +303,8 @@ public class Lecturer extends GameObject {
 
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
-        // NORMALIZE SIZE: Scale everything to 64px height regardless of PNG resolution
-        int targetHeight = 64;
+        // NORMALIZE SIZE: Balanced height (approx 1.5 tiles)
+        int targetHeight = 100;
         int imgH = (image != null) ? image.getHeight() : 16;
         int imgW = (image != null) ? image.getWidth() : 16;
         
@@ -278,6 +317,7 @@ public class Lecturer extends GameObject {
         int drawY = y + (height - drawH);
 
         // SHADOW
+            
         g.setColor(new Color(0, 0, 0, 50));
         g.fillOval(x + 12, y + height - 10, width - 24, 8);
 
@@ -285,7 +325,7 @@ public class Lecturer extends GameObject {
             // BOUNCE EFFECT
             int finalY = drawY;
             if (isMoving && spriteNum == 2) {
-                finalY += 4;
+                finalY -= 4; // slight bounce
             }
             g.drawImage(image, drawX, finalY, drawW, drawH, null);
         }
