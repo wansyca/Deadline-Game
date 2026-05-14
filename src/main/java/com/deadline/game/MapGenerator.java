@@ -20,42 +20,45 @@ public class MapGenerator {
 
         // 2. FLOOR PLAN
         // Horizontal Corridor
-        fillArea(2, 57, 15, 21, 0, 0, 0); 
+        fillArea(2, 71, 15, 21, 0, 0, 0); 
         
-        // Lobby area (Open to corridor)
-        fillArea(44, 57, 21, 33, 0, 0, 0); 
-
         // Top Rooms
         fillArea(2, 15, 2, 15, 3, 0, 0); // Classroom 1
         fillArea(16, 29, 2, 15, 3, 0, 0); // Classroom 2
         fillArea(30, 43, 2, 15, 3, 0, 0); // Classroom 3
         fillArea(44, 57, 2, 15, 2, 0, 0); // Lab 1
+        fillArea(58, 71, 2, 15, 3, 0, 0); // Classroom 4 (Vertical)
 
         // Bottom Rooms
         fillArea(2, 15, 21, 33, 2, 0, 0); // Lab 2
         fillArea(16, 29, 21, 33, 1, 0, 0); // Library
         fillArea(30, 43, 21, 33, 3, 0, 0); // Lecturer
+        fillArea(44, 57, 21, 33, 0, 0, 0); // Lobby area (Open to corridor)
+        fillArea(58, 71, 21, 33, 3, 0, 0); // Classroom 5 (Vertical)
 
         // 3. WALLS & STRUCTURE
         // Outer boundaries
-        drawHWall(1, 57, 1, 1); // Top outer
-        drawHWall(1, 57, 33, 18); // Bottom outer
+        drawHWall(1, 71, 1, 1); // Top outer
+        drawHWall(1, 71, 33, 18); // Bottom outer
         drawVWall(1, 1, 33, 2); // Left outer
-        drawVWall(57, 1, 33, 2); // Right outer
+        drawVWall(71, 1, 33, 2); // Right outer
 
         // Horizontal Room dividers
-        drawHWall(1, 57, 14, 1); // Top rooms bottom wall
+        drawHWall(1, 71, 14, 1); // Top rooms bottom wall
         drawHWall(1, 43, 20, 1); // Bottom rooms top wall (leaves Lobby open)
+        drawHWall(58, 71, 20, 1); // CR5 top wall
         
         // Vertical dividers (Top)
         drawVWall(15, 1, 14, 2);
         drawVWall(29, 1, 14, 2);
         drawVWall(43, 1, 14, 2);
+        drawVWall(57, 1, 14, 2);
         
         // Vertical dividers (Bottom)
         drawVWall(15, 20, 33, 2);
         drawVWall(29, 20, 33, 2);
         drawVWall(43, 20, 33, 2);
+        drawVWall(57, 20, 33, 2);
 
         // 4. DOORS (Centered in each 14-tile room, 2 tiles wide)
         // Top row doors (Corridor at y=14)
@@ -63,24 +66,28 @@ public class MapGenerator {
         setObject(21, 14, 6, 0); setObject(22, 14, 6, 0); // CR2
         setObject(35, 14, 6, 0); setObject(36, 14, 6, 0); // CR3
         setObject(50, 14, 7, 0); setObject(51, 14, 7, 0); // Lab1
+        setObject(63, 14, 6, 0); setObject(64, 14, 6, 0); // CR4
 
         // Bottom row doors (Corridor at y=20)
         setObject(7, 20, 7, 0); setObject(8, 20, 7, 0);   // Lab2
         setObject(21, 20, 7, 0); setObject(22, 20, 7, 0); // Library
         setObject(35, 20, 6, 0); setObject(36, 20, 6, 0); // Lecturer
         // Lobby has no door
+        setObject(63, 20, 6, 0); setObject(64, 20, 6, 0); // CR5
 
         // 5. FURNITURE POPULATION
         populateClassroom(2, 2);
         populateClassroom(16, 2);
         populateClassroom(30, 2);
-        
         populateLab(44, 2); // Lab 1
-        populateLab(2, 21); // Lab 2
+        populateClassroom(58, 2); // CR4
         
+        populateLab(2, 21); // Lab 2
         populateLibrary(16, 21);
         populateLecturer(30, 21);
         populateLobby(44, 21);
+        populateClassroom(58, 21); // CR5
+        
         populateCorridor();
 
         polishWorld();
@@ -121,12 +128,12 @@ public class MapGenerator {
         setObject(startX + 6, startY, 10, 1); // Whiteboard center
         
         setObject(startX + 6, startY + 2, 17, 1); // Teacher desk
-        setObject(startX + 6, startY + 3, 13, 1); // Teacher chair
         
-        for (int r = startY + 5; r <= startY + 9; r += 2) {
+        for (int r = startY + 3; r <= startY + 9; r += 3) {
             for (int c = startX + 2; c <= startX + 10; c += 2) {
+                if (c == startX + 6) continue; // Create center aisle
                 setObject(c, r, 12, 1); // Desk
-                setObject(c, r - 1, 13, 1); // Chair (Student chair above desk)
+                setObject(c, r + 1, 13, 1); // Chair (Student chair below desk)
             }
         }
     }
@@ -148,13 +155,15 @@ public class MapGenerator {
                 setObject(c, r, 15, 1); // Bookshelf
             }
         }
-        for (int c = startX + 3; c <= startX + 9; c += 5) {
-            setObject(c, startY + 8, 12, 1); // Table top
-            setObject(c, startY + 9, 12, 1); // Table bottom
-            setObject(c - 1, startY + 8, 13, 1); // Chair
-            setObject(c - 1, startY + 9, 13, 1);
-            setObject(c + 1, startY + 8, 13, 1);
-            setObject(c + 1, startY + 9, 13, 1);
+        // Horizontal reading tables to prevent chair alignment bugs
+        for (int r = startY + 7; r <= startY + 10; r += 3) {
+            for (int c = startX + 3; c <= startX + 8; c += 5) {
+                setObject(c, r, 12, 1); // Table left
+                setObject(c + 1, r, 12, 1); // Table right
+                
+                setObject(c, r + 1, 13, 1); // Chair below table
+                setObject(c + 1, r + 1, 13, 1); // Chair below table
+            }
         }
     }
 
@@ -177,6 +186,7 @@ public class MapGenerator {
     private void populateCorridor() {
         setObject(10, 15, 9, 1); // Vending machine
         setObject(38, 15, 9, 1); // Vending machine
+        setObject(66, 15, 9, 1); // Vending machine
     }
 
     private void polishWorld() {

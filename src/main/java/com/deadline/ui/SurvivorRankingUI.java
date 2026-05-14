@@ -28,9 +28,9 @@ public class SurvivorRankingUI extends JPanel {
 
         // BACK BUTTON (Don't change implementation)
         backBtn = new ImageButton(
-                "/assets/buttons/btn_backto_normal.png",
-                "/assets/buttons/btn_backto_normal.png",
-                "/assets/buttons/btn_backto_normal.png",
+                "/assets/ui/buttons/btn_backto_normal.png",
+                "/assets/ui/buttons/btn_backto_normal.png",
+                "/assets/ui/buttons/btn_backto_normal.png",
                 180, 50);
         backBtn.addActionListener(e -> {
             SoundManager.playClickSound();

@@ -44,7 +44,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
 
     // MAP GRID SYSTEM
     private static final int TILE_SIZE = 64;
-    private static final int MAP_COLS = 59;
+    private static final int MAP_COLS = 73;
     private static final int MAP_ROWS = 35;
     private static final int WORLD_WIDTH = MAP_COLS * TILE_SIZE;
     private static final int WORLD_HEIGHT = MAP_ROWS * TILE_SIZE;
