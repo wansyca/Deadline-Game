@@ -227,8 +227,8 @@ public class Lecturer extends GameObject {
         }
 
         // 4. DYNAMIC DIFFICULTY & AGGRESSION
-        // Base speed increased
-        double baseSpeed = 5.5;
+        // Base speed increased for scary gameplay
+        double baseSpeed = 9.5;
         int level = GamePanel.currentLevel;
         int books = GamePanel.totalBooksCollected;
 
@@ -292,7 +292,7 @@ public class Lecturer extends GameObject {
         }
 
         spriteCounter++;
-        if (spriteCounter >= 8) {
+        if (spriteCounter >= 6) { // Animasi kaki dosen disesuaikan dengan kecepatan larinya
             spriteNum = (spriteNum == 1) ? 2 : 1;
             spriteCounter = 0;
 

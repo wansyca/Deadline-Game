@@ -69,11 +69,11 @@ public class MapGenerator {
         setObject(63, 14, 6, 0); setObject(64, 14, 6, 0); // CR4
 
         // Bottom row doors (Corridor at y=20)
-        setObject(7, 20, 7, 0); setObject(8, 20, 7, 0);   // Lab2
+        setObject(8, 20, 7, 0); setObject(9, 20, 7, 0);   // Lab2 (Aisle di 8,9)
         setObject(21, 20, 7, 0); setObject(22, 20, 7, 0); // Library
         setObject(35, 20, 6, 0); setObject(36, 20, 6, 0); // Lecturer
         // Lobby has no door
-        setObject(63, 20, 6, 0); setObject(64, 20, 6, 0); // CR5
+        setObject(59, 20, 6, 0); setObject(60, 20, 6, 0); // CR5 (Pintu di kiri agar tidak nabrak Whiteboard)
 
         // 5. FURNITURE POPULATION
         populateClassroom(2, 2);
@@ -127,19 +127,19 @@ public class MapGenerator {
     private void populateClassroom(int startX, int startY) {
         setObject(startX + 6, startY, 10, 1); // Whiteboard center
         
-        setObject(startX + 6, startY + 2, 17, 1); // Teacher desk
+        setObject(startX + 6, startY + 1, 17, 1); // Teacher desk (Geser ke atas)
         
+        // 5 Meja horizontal, 3 baris vertikal. (Mulai dari startY + 3 agar dekat dengan depan dan jauh dari pintu)
         for (int r = startY + 3; r <= startY + 9; r += 3) {
             for (int c = startX + 2; c <= startX + 10; c += 2) {
-                if (c == startX + 6) continue; // Create center aisle
-                setObject(c, r, 12, 1); // Desk
-                setObject(c, r + 1, 13, 1); // Chair (Student chair below desk)
+                setObject(c, r, 12, 1); // Desk (Solid)
+                setObject(c, r + 1, 13, 1); // Chair (Solid)
             }
         }
     }
 
     private void populateLab(int startX, int startY) {
-        for (int r = startY + 2; r <= startY + 10; r += 3) { 
+        for (int r = startY + 3; r <= startY + 9; r += 3) { 
             for (int c = startX + 2; c <= startX + 5; c += 3) {
                 setObject(c, r, 14, 1); // PC Desk (Built-in chair)
             }
@@ -150,26 +150,26 @@ public class MapGenerator {
     }
 
     private void populateLibrary(int startX, int startY) {
+        // Dense bookshelf rows (lama/old layout)
         for (int r = startY + 1; r <= startY + 5; r++) {
             for (int c = startX + 1; c <= startX + 11; c += 3) {
                 setObject(c, r, 15, 1); // Bookshelf
             }
         }
-        // Horizontal reading tables to prevent chair alignment bugs
-        for (int r = startY + 7; r <= startY + 10; r += 3) {
-            for (int c = startX + 3; c <= startX + 8; c += 5) {
-                setObject(c, r, 12, 1); // Table left
-                setObject(c + 1, r, 12, 1); // Table right
-                
-                setObject(c, r + 1, 13, 1); // Chair below table
-                setObject(c + 1, r + 1, 13, 1); // Chair below table
-            }
+        // Reading tables with chairs on both sides
+        for (int c = startX + 3; c <= startX + 9; c += 5) {
+            setObject(c, startY + 8, 12, 1); // Table top
+            setObject(c, startY + 9, 12, 1); // Table bottom
+            setObject(c - 1, startY + 8, 13, 1); // Chair left
+            setObject(c - 1, startY + 9, 13, 1);
+            setObject(c + 1, startY + 8, 13, 1); // Chair right
+            setObject(c + 1, startY + 9, 13, 1);
         }
     }
 
     private void populateLecturer(int startX, int startY) {
-        for (int r = startY + 2; r <= startY + 10; r += 4) {
-            for (int c = startX + 2; c <= startX + 10; c += 4) {
+        for (int r = startY + 3; r <= startY + 9; r += 3) {
+            for (int c = startX + 3; c <= startX + 9; c += 6) {
                 setObject(c, r, 17, 1); // Desk (Built-in chair)
             }
         }

@@ -110,9 +110,9 @@ public class Player extends GameObject {
 
     @Override
     public void update() {
-        double speedLimit = 8.0; // Responsive speed
+        double speedLimit = 12.0; // Dipercepat agar terasa ringan
         double accel = 1.0;     // Instant acceleration
-        double friction = 0.9;  // Quick stop
+        double friction = 0.0;  // Instant stop so player doesn't feel heavy
 
         double inputX = dX;
         double inputY = dY;
@@ -146,7 +146,7 @@ public class Player extends GameObject {
             }
 
             spriteCounter++;
-            if (spriteCounter >= 6) { // Slightly faster animation
+            if (spriteCounter >= 5) { // Animasi lebih cepat menyesuaikan speed
                 spriteNum = (spriteNum == 1) ? 2 : 1;
                 spriteCounter = 0;
             }

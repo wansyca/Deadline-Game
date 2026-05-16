@@ -697,14 +697,17 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                             g2.drawImage(img, fx, fy, fw, fh, null);
                         } else {
                             // Furniture logic
-                            double scale = 1.8;
-                            if (obj == 14) scale = 2.2; // Sedikit lebih besar untuk meja lab
+                            double scale = 1.55; // Diperbesar sedikit agar gap antar baris terisi
+                            if (obj == 14) scale = 1.8; // Meja lab
                             int fw = (int) (TILE_SIZE * scale);
                             int fh = (int) (TILE_SIZE * scale);
                             int fx = c * TILE_SIZE - (fw - TILE_SIZE) / 2;
-                            int fy = r * TILE_SIZE - (fh - TILE_SIZE);
-                            if (obj == 10)
-                                fy = r * TILE_SIZE - (fh - TILE_SIZE) / 2;
+                            // Align to the tile center vertically so chairs tuck under desks perfectly
+                            int fy = r * TILE_SIZE - (fh - TILE_SIZE) / 2; 
+                            if (obj == 10) // Papan tulis
+                                fy = r * TILE_SIZE - (fh - TILE_SIZE);
+                            else if (obj == 13) // Kursi murid ditarik ke atas agar dekat dengan mejanya
+                                fy -= 25;
                             g2.drawImage(img, fx, fy, fw, fh, null);
                         }
                     } else {
@@ -749,8 +752,8 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         Graphics2D gM = lightingMask.createGraphics();
         gM.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // 2. FULLSCREEN DARKNESS OVERLAY (Merata 50% transparent black)
-        gM.setColor(new Color(0, 0, 0, 128)); // 50% opacity
+        // 2. FULLSCREEN DARKNESS OVERLAY (Merata ~55% transparent black)
+        gM.setColor(new Color(0, 0, 0, 140)); // 55% opacity for horror vibe
         gM.fillRect(0, 0, w, h);
 
         // 3. BULAT LUBANG CAHAYA (Punched out hole for player)
@@ -759,13 +762,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         int px = (int) ((player.getX() - camX + player.getWidth() / 2) * currentZoom);
         int py = (int) ((player.getY() - camY + player.getHeight() / 2) * currentZoom);
         
-        float spotlightRadius = (float) (400 * currentZoom);
+        float spotlightRadius = (float) (350 * currentZoom);
         
-        // Soft radial gradient for smooth light
-        float[] spotDist = { 0.0f, 0.4f, 1.0f };
+        // Soft radial gradient for smooth light (Area dekat terang, semakin jauh gelap)
+        float[] spotDist = { 0.0f, 0.3f, 1.0f };
         Color[] spotColors = { 
             new Color(0, 0, 0, 255), // Center: Perfectly Clear
-            new Color(0, 0, 0, 150), // Mid: Softening
+            new Color(0, 0, 0, 180), // Mid: Softening
             new Color(0, 0, 0, 0)    // Edge: Fading
         };
         
@@ -773,17 +776,28 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 new Point(px, py), spotlightRadius, spotDist, spotColors);
         gM.setPaint(rgp);
         
-        // Fill entire screen to avoid any bounding box/square artifacts
+        // Fill only the oval to avoid hard edge square artifacts
+        gM.fillOval(px - (int)spotlightRadius, py - (int)spotlightRadius, (int)spotlightRadius * 2, (int)spotlightRadius * 2);
+
+        // 4. VIGNETTE EFFECT (Darken screen edges)
+        gM.setComposite(AlphaComposite.SrcOver);
+        float vigRadius = Math.max(w, h) * 0.8f;
+        float[] vigDist = { 0.4f, 1.0f };
+        Color[] vigColors = { new Color(0, 0, 0, 0), new Color(0, 0, 0, 180) };
+        java.awt.RadialGradientPaint vigPaint = new java.awt.RadialGradientPaint(
+                new Point(w / 2, h / 2), vigRadius, vigDist, vigColors);
+        gM.setPaint(vigPaint);
         gM.fillRect(0, 0, w, h);
+
         gM.dispose();
 
-        // 4. DRAW MASK ONTO SCREEN
+        // 5. DRAW MASK ONTO SCREEN
         g2.drawImage(lightingMask, 0, 0, null);
 
         // RESTORE WORLD TRANSFORM FOR AMBIENT GLOWS
         g2.setTransform(worldTransform);
 
-        // 5. AMBIENT GLOWS (Lamps, Vending, etc.)
+        // 6. AMBIENT GLOWS (Lamps, Vending, etc.)
         int startCol = Math.max(0, camX / TILE_SIZE);
         int startRow = Math.max(0, camY / TILE_SIZE);
         int endCol = Math.min(MAP_COLS, (camX + (int) (w / currentZoom)) / TILE_SIZE + 2);
@@ -803,6 +817,13 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                     if (obj == 14) drawColorGlow(g2, lx, ly, 120, new Color(150, 255, 255, 25));
                 }
             }
+        }
+
+        // 7. BOOK GLOWS (Subtle warm orange/yellow glow)
+        for (Assignment a : assignments) {
+            int bx = a.getX() + a.getWidth() / 2;
+            int by = a.getY() + a.getHeight() / 2;
+            drawColorGlow(g2, bx, by, 70, new Color(255, 170, 50, 70));
         }
     }
 
