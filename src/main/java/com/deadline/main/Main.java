@@ -62,9 +62,9 @@ public class Main {
         if (cardLayout != null && mainPanel != null) {
             cardLayout.show(mainPanel, pageName);
 
-            // 🎵 Putar musik menu jika sedang di Dashboard atau Input Player
-            if (pageName.equals(DASHBOARD) || pageName.equals(INPUT_PLAYER)) {
-                SoundManager.playBackgroundMusic("/assets/audio/bgm/Midnight Focus Loop.wav", -5.0f);
+            // 🎵 BGM: awal&input.wav loops on menu pages, fades out on game start
+            if (pageName.equals(SPLASH) || pageName.equals(DASHBOARD) || pageName.equals(INPUT_PLAYER)) {
+                SoundManager.playMenuMusic();
             }
 
             // Fokus ke GamePanel biar input keyboard jalan
@@ -84,7 +84,7 @@ public class Main {
     }
 
     public static void goToGameWithLoading(int playerId, String playerName, String avatarPath) {
-        SoundManager.stopBackgroundMusicWithFade(); 
+        SoundManager.stopMenuMusicFade(); // fade out menu BGM before game starts
         if (gamePanel != null) {
             gamePanel.resetGame(playerId, playerName, avatarPath);
         }

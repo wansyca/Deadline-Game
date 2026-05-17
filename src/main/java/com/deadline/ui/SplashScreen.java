@@ -1,241 +1,267 @@
 package com.deadline.ui;
 
+import com.deadline.audio.SoundManager;
 import com.deadline.main.Main;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 
+/**
+ * SplashScreen — cinematic horror intro screen for "23:59".
+ *
+ * Background = bg.png (identik dengan DashboardPanel) sehingga transisi terasa seamless.
+ * Di atasnya: partikel debu putih jatuh perlahan, vignette tepi, logo fade-in halus.
+ */
 public class SplashScreen extends JPanel {
+
+    // ─── Assets ─────────────────────────────────────────────────────────────
     private BufferedImage logo;
-    private LogoPiece[] pieces;
-    private Particle[] particles;
+    private Image         bgImage;      // sama dengan bg.png di DashboardPanel
     private int targetW, targetH;
+
+    // ─── Animation state ────────────────────────────────────────────────────
     private Timer animTimer;
-    private long startTime;
-    private float alpha = 1.0f;
-    private boolean completed = false;
-    private int shakeOffset = 0;
-    
-    private final int GRID_SIZE = 4; // 4x4 = 16 pieces
-    private final int DURATION_MS = 3000; // 3 seconds total
-    private final int ASSEMBLY_TIME = 1000; // 1s to assemble
+    private long  startTime;
 
-    private class LogoPiece {
-        int startX, startY;
-        int targetX, targetY;
-        int srcX, srcY, srcW, srcH;
-        int currentX, currentY;
+    /** Alpha keseluruhan scene: 0 = transparan, 1 = penuh */
+    private float sceneAlpha = 0f;
 
-        LogoPiece(int startX, int startY, int targetX, int targetY, int srcX, int srcY, int srcW, int srcH) {
-            this.startX = startX;
-            this.startY = startY;
-            this.targetX = targetX;
-            this.targetY = targetY;
-            this.srcX = srcX;
-            this.srcY = srcY;
-            this.srcW = srcW;
-            this.srcH = srcH;
-        }
+    /** Zoom cinematic sangat halus pada logo: mulai 1.05 → berakhir 1.0 */
+    private float logoScale  = 1.05f;
 
-        void update(float t) {
-            // Cubic ease out
-            float easeT = 1 - (float)Math.pow(1 - t, 3);
-            currentX = (int) (startX + (targetX - startX) * easeT);
-            currentY = (int) (startY + (targetY - startY) * easeT);
-        }
-    }
+    // ─── Timing (ms) ────────────────────────────────────────────────────────
+    private static final int FADE_IN_MS  = 1200;   // logo fade-in
+    private static final int HOLD_MS     = 2200;   // hold di opacity penuh
+    private static final int FADE_OUT_MS = 900;    // fade-out smooth ke Dashboard
+    private static final int TOTAL_MS    = FADE_IN_MS + HOLD_MS + FADE_OUT_MS; // 4300ms
 
-    private class Particle {
-        float x, y;
-        float speedX, speedY;
-        float size;
-        int alpha;
-        
-        Particle(int w, int h) {
-            x = (float) (Math.random() * w);
-            y = (float) (Math.random() * h);
-            speedX = (float) (Math.random() * 0.5 - 0.25);
-            speedY = (float) (Math.random() * -1.0 - 0.2); // move up slowly
-            size = (float) (Math.random() * 3 + 1);
-            alpha = (int) (Math.random() * 100 + 50);
-        }
-        
-        void update(int w, int h) {
-            x += speedX;
-            y += speedY;
-            if (y < 0) {
-                y = h;
-                x = (float) (Math.random() * w);
-            }
-        }
-    }
+    // ─── Partikel debu/abu ───────────────────────────────────────────────────
+    private static final int PARTICLE_COUNT = 120;
+    private float[] px, py, pspdX, pspdY, psize;
+    private int[]   palpha;
+    private boolean particlesInited = false;
 
     public SplashScreen() {
-        setBackground(Color.BLACK);
-        loadLogo();
+        setBackground(Color.BLACK);   // fallback jika bg.png gagal load
+        loadAssets();
     }
 
-    private void loadLogo() {
+    // ────────────────────────────────────────────────────────────────────────
+    //  Asset loading
+    // ────────────────────────────────────────────────────────────────────────
+
+    private void loadAssets() {
+        // Logo universitas
         try {
             logo = ImageIO.read(getClass().getResourceAsStream("/assets/ui/panels/logo.png"));
         } catch (Exception e) {
-            System.err.println("❌ Error loading splash logo: /assets/ui/panels/logo.png");
+            System.err.println("❌ Splash: logo.png tidak ditemukan");
+        }
+
+        // Background — sama persis dengan DashboardPanel
+        try {
+            java.net.URL url = getClass().getResource("/assets/ui/panels/bg.png");
+            if (url != null) bgImage = new ImageIcon(url).getImage();
+        } catch (Exception e) {
+            System.err.println("❌ Splash: bg.png tidak ditemukan");
         }
     }
 
-    private void initPieces() {
-        int screenW = getWidth();
-        int screenH = getHeight();
-        if (screenW <= 0 || logo == null) return;
+    // ────────────────────────────────────────────────────────────────────────
+    //  Inisialisasi partikel & ukuran logo (setelah panel punya ukuran nyata)
+    // ────────────────────────────────────────────────────────────────────────
 
-        double logoRatio = (double) logo.getWidth() / logo.getHeight();
-        targetW = (int) (screenW * 0.35);
-        targetH = (int) (targetW / logoRatio);
-        int centerX = (screenW - targetW) / 2;
-        int centerY = (screenH - targetH) / 2;
+    private void initScene() {
+        int sw = getWidth();
+        int sh = getHeight();
+        if (sw <= 0 || sh <= 0) return;
 
-        pieces = new LogoPiece[GRID_SIZE * GRID_SIZE];
-        int pW = logo.getWidth() / GRID_SIZE;
-        int pH = logo.getHeight() / GRID_SIZE;
-        int dw = targetW / GRID_SIZE;
-        int dh = targetH / GRID_SIZE;
+        // Ukuran logo: 32% lebar layar
+        if (logo != null) {
+            double ratio = (double) logo.getWidth() / logo.getHeight();
+            targetW = (int) (sw * 0.32);
+            targetH = (int) (targetW / ratio);
+        }
+
+        // Init partikel
+        px     = new float[PARTICLE_COUNT];
+        py     = new float[PARTICLE_COUNT];
+        pspdX  = new float[PARTICLE_COUNT];
+        pspdY  = new float[PARTICLE_COUNT];
+        psize  = new float[PARTICLE_COUNT];
+        palpha = new int  [PARTICLE_COUNT];
 
         java.util.Random rnd = new java.util.Random();
-        int idx = 0;
-        for (int r = 0; r < GRID_SIZE; r++) {
-            for (int c = 0; c < GRID_SIZE; c++) {
-                int targetX = centerX + c * dw;
-                int targetY = centerY + r * dh;
-                
-                // Random start positions (often off-screen)
-                int startX = rnd.nextInt(screenW + 400) - 200;
-                int startY = rnd.nextInt(screenH + 400) - 200;
-                
-                pieces[idx++] = new LogoPiece(startX, startY, targetX, targetY, 
-                                            c * pW, r * pH, pW, pH);
-            }
+        for (int i = 0; i < PARTICLE_COUNT; i++) {
+            resetParticle(i, sw, sh, rnd, true);
         }
+        particlesInited = true;
 
-        particles = new Particle[80];
-        for (int i = 0; i < particles.length; i++) {
-            particles[i] = new Particle(screenW, screenH);
-        }
-        
         startAnimation();
     }
 
+    private void resetParticle(int i, int sw, int sh, java.util.Random rnd, boolean scattered) {
+        px[i]    = rnd.nextFloat() * sw;
+        py[i]    = scattered ? rnd.nextFloat() * sh : -rnd.nextFloat() * 40f;
+        pspdX[i] = (rnd.nextFloat() - 0.5f) * 0.35f;    // sedikit drift horizontal
+        pspdY[i] = 0.25f + rnd.nextFloat() * 0.55f;      // jatuh ke bawah perlahan
+        psize[i] = 1.0f + rnd.nextFloat() * 2.0f;        // 1–3 px
+        palpha[i] = 55 + rnd.nextInt(110);                // 55–165 (lembut)
+    }
+
+    private void updateParticles() {
+        int sw = getWidth();
+        int sh = getHeight();
+        java.util.Random rnd = new java.util.Random();
+        for (int i = 0; i < PARTICLE_COUNT; i++) {
+            px[i] += pspdX[i];
+            py[i] += pspdY[i];
+            if (py[i] > sh + 5)              resetParticle(i, sw, sh, rnd, false);
+            if (px[i] < -5 || px[i] > sw + 5) px[i] = rnd.nextFloat() * sw;
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    //  Loop animasi
+    // ────────────────────────────────────────────────────────────────────────
+
     private void startAnimation() {
         startTime = System.currentTimeMillis();
+
         animTimer = new Timer(16, e -> {
             long elapsed = System.currentTimeMillis() - startTime;
-            
-            if (particles != null) {
-                for (Particle p : particles) p.update(getWidth(), getHeight());
+
+            if (particlesInited) updateParticles();
+
+            // Fase 1: Fade-in
+            if (elapsed < FADE_IN_MS) {
+                float t  = (float) elapsed / FADE_IN_MS;
+                sceneAlpha = easeInOut(t);
+                logoScale  = 1.05f - 0.05f * easeInOut(t);   // zoom: 1.05 → 1.0
+
+            // Fase 2: Hold
+            } else if (elapsed < FADE_IN_MS + HOLD_MS) {
+                sceneAlpha = 1.0f;
+                logoScale  = 1.0f;
+
+            // Fase 3: Fade-out
+            } else if (elapsed < TOTAL_MS) {
+                float t    = (float) (elapsed - FADE_IN_MS - HOLD_MS) / FADE_OUT_MS;
+                sceneAlpha = 1.0f - easeInOut(t);
+
+            // Selesai → pindah ke Dashboard
+            } else {
+                ((Timer) e.getSource()).stop();
+                Main.switchPage(Main.DASHBOARD);
+                return;
             }
 
-            if (elapsed < ASSEMBLY_TIME) {
-                float t = (float) elapsed / ASSEMBLY_TIME;
-                for (LogoPiece p : pieces) p.update(t);
-                completed = false;
-            } else if (elapsed < DURATION_MS - 500) {
-                // Stay assembled
-                for (LogoPiece p : pieces) {
-                    p.currentX = p.targetX;
-                    p.currentY = p.targetY;
-                }
-                // IMPACT SHAKE
-                if (elapsed < ASSEMBLY_TIME + 100) {
-                    shakeOffset = (int)(Math.random() * 8 - 4);
-                } else {
-                    shakeOffset = 0;
-                }
-                completed = true;
-            } else if (elapsed < DURATION_MS) {
-                float t = (float) (elapsed - (DURATION_MS - 500)) / 500f;
-                alpha = Math.max(0.0f, 1.0f - t);
-            } else {
-                animTimer.stop();
-                Main.switchPage(Main.DASHBOARD);
-            }
             repaint();
         });
         animTimer.start();
     }
 
+    /** Cubic ease-in-out */
+    private static float easeInOut(float t) {
+        t = Math.max(0f, Math.min(1f, t));
+        return t * t * (3f - 2f * t);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    //  Lifecycle
+    // ────────────────────────────────────────────────────────────────────────
+
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        SoundManager.playMenuMusic();   // mulai ambience segera saat splash tampil
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    //  Painting
+    // ────────────────────────────────────────────────────────────────────────
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         if (logo == null) return;
-        if (pieces == null) {
-            initPieces();
+
+        // Tunda init sampai panel punya ukuran nyata
+        if (!particlesInited) {
+            initScene();
             return;
         }
 
-        Graphics2D g2 = (Graphics2D) g;
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
-
         int w = getWidth();
         int h = getHeight();
-        long elapsed = System.currentTimeMillis() - startTime;
 
-        // --- CINEMATIC BACKGROUND ---
-        
-        // 1. Dark Gradient (Black to Deep Red)
-        GradientPaint gp = new GradientPaint(0, 0, Color.BLACK, 0, h, new Color(30, 0, 0));
-        g2.setPaint(gp);
-        g2.fillRect(0, 0, w, h);
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,  RenderingHints.VALUE_ANTIALIAS_OFF);
 
-        // 2. Animated Fog
-        float fogOffset = (elapsed % 10000) / 10000f; 
-        g2.setColor(new Color(60, 10, 10, 15));
-        for (int i = 0; i < 3; i++) {
-            int ovalW = (int) (w * 1.5);
-            int ovalH = (int) (h * 1.5);
-            int ox = (int) (Math.sin(fogOffset * Math.PI * 2 + i) * 150) - (ovalW - w) / 2;
-            int oy = (int) (Math.cos(fogOffset * Math.PI * 2 + i) * 100) - (ovalH - h) / 2;
-            g2.fillOval(ox, oy, ovalW, ovalH);
-        }
-
-        // 3. Floating Dust Particles
-        if (particles != null) {
-            for (Particle p : particles) {
-                g2.setColor(new Color(255, 180, 150, p.alpha));
-                g2.fillRect((int)p.x, (int)p.y, (int)p.size, (int)p.size);
-            }
-        }
-
-        // 4. Soft Red Glow around Logo
-        if (completed) {
-            int glowSize = (int) (targetW * 1.5);
-            float glowPulse = (float) Math.abs(Math.sin(elapsed / 600.0));
-            RadialGradientPaint rgp = new RadialGradientPaint(
-                new Point(w / 2, h / 2), glowSize / 2f, 
-                new float[]{0f, 1f}, 
-                new Color[]{new Color(150, 0, 0, (int)(30 + 15 * glowPulse)), new Color(0, 0, 0, 0)}
-            );
-            g2.setPaint(rgp);
+        // ── 1. bg.png — IDENTIK dengan DashboardPanel, tampil penuh ──────────
+        if (bgImage != null) {
+            g2.drawImage(bgImage, 0, 0, w, h, null);
+        } else {
+            // fallback jika bg.png gagal load
+            g2.setColor(new Color(10, 5, 5));
             g2.fillRect(0, 0, w, h);
         }
 
-        // --- DRAW LOGO ---
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, Math.max(0, alpha)));
-
-        int dw = targetW / GRID_SIZE;
-        int dh = targetH / GRID_SIZE;
-        
-        // Gentle Floating Animation
-        int floatY = 0;
-        if (completed) {
-            floatY = (int) (Math.sin(elapsed / 400.0) * 8);
+        // ── 2. Partikel debu/abu putih jatuh perlahan ────────────────────────
+        if (particlesInited && sceneAlpha > 0.01f) {
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, sceneAlpha * 0.85f));
+            for (int i = 0; i < PARTICLE_COUNT; i++) {
+                g2.setColor(new Color(220, 210, 210, palpha[i]));
+                int ps = (int) Math.max(1, psize[i]);
+                g2.fillRect((int) px[i], (int) py[i], ps, ps);
+            }
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
         }
 
-        for (LogoPiece p : pieces) {
-            int finalY = p.currentY + floatY + (completed ? shakeOffset : 0);
-            g2.drawImage(logo, 
-                p.currentX, finalY, p.currentX + dw, finalY + dh,
-                p.srcX, p.srcY, p.srcX + p.srcW, p.srcY + p.srcH, null);
+        // ── 3. Logo universitas — fade-in + zoom cinematic halus ─────────────
+        if (sceneAlpha > 0.01f && targetW > 0) {
+            int drawW = (int) (targetW * logoScale);
+            int drawH = (int) (targetH * logoScale);
+            int drawX = (w - drawW) / 2;
+            int drawY = (h - drawH) / 2;
+
+            // Soft glow merah di belakang logo (sangat redup, tidak dominan)
+            long elapsed  = System.currentTimeMillis() - startTime;
+            float pulse   = 0.5f + 0.5f * (float) Math.sin(elapsed / 1800.0);
+            int glowAlpha = (int) (18 + 10 * pulse);
+            int glowR     = (int) (drawW * 1.6);
+
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            RadialGradientPaint glow = new RadialGradientPaint(
+                w / 2f, h / 2f, glowR / 2f,
+                new float[]{0f, 1f},
+                new Color[]{new Color(100, 0, 0, glowAlpha), new Color(0, 0, 0, 0)}
+            );
+            g2.setPaint(glow);
+            g2.fillRect(0, 0, w, h);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+
+            // Logo dengan sedikit fade transparency agar menyatu dengan bg
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, sceneAlpha * 0.90f));
+            g2.drawImage(logo, drawX, drawY, drawW, drawH, null);
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
         }
+
+        // ── 4. Vignette gelap tipis di tepi layar ────────────────────────────
+        drawVignette(g2, w, h);
+    }
+
+    private void drawVignette(Graphics2D g2, int w, int h) {
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        RadialGradientPaint vignette = new RadialGradientPaint(
+            w / 2f, h / 2f,
+            (float) Math.sqrt(w * w + h * h) / 2f,
+            new float[]{0.45f, 1.0f},
+            new Color[]{new Color(0, 0, 0, 0), new Color(0, 0, 0, 160)}
+        );
+        g2.setPaint(vignette);
+        g2.fillRect(0, 0, w, h);
     }
 }
