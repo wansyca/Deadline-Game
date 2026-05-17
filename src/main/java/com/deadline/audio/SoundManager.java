@@ -29,17 +29,17 @@ import javax.sound.sampled.*;
 public class SoundManager {
 
     // ─── Resource paths ─────────────────────────────────────────────────────
-    private static final String PATH_MENU     = "/sound/hal&input.wav";
+    private static final String PATH_MENU     = "/sound/awal&input.wav";
     private static final String PATH_CLICK    = "/sound/click.wav";
     private static final String PATH_BOOK     = "/sound/ambilbuku.wav";
     private static final String PATH_GAMEOVER = "/sound/Gameover.wav";
 
     // ─── Volume defaults (dB) ────────────────────────────────────────────────
-    // Menu BGM kept low (~25%) so it acts as horror ambience, not foreground music.
-    // SFX are louder so player feedback is always clear.
-    private static final float VOL_MENU     = -12.0f;  // ~25% — soft horror ambience
+    // Menu BGM dinaikkan agar terdengar jelas di halaman awal & input player.
+    // SFX tetap keras agar feedback player selalu jelas.
+    private static final float VOL_MENU     = 0.0f;  // ~25% — soft horror ambience
     private static final float VOL_CLICK    =  -5.0f;  // ~60% — crisp UI feedback
-    private static final float VOL_BOOK     =   0.0f;  // ~70% — satisfying collect
+    private static final float VOL_BOOK     =   -5.0f;  // ~70% — satisfying collect
     private static final float VOL_GAMEOVER =   0.0f;  // 100% — dramatic sting
 
     // ─── Background music clip (menu / input) ───────────────────────────────
