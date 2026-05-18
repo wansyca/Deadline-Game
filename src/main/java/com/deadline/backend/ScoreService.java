@@ -11,75 +11,80 @@ import java.util.Map;
 
 public class ScoreService {
 
-    public void saveScore(String nama, int score, int waktu) {
-        String insertQuery = "INSERT INTO leaderboard (nama, score, waktu) VALUES (?, ?, ?)";
+    // ========== SAVE SCORE (Full) ==========
+    public void saveScore(String playerName, String avatarPath, int score,
+            int booksCollected, int level, int survivalTime, String status) {
 
-        try (Connection conn = DatabaseManager.getConnection()) {
-            if (conn == null) {
-                System.out.println("ERROR: Koneksi database gagal, tidak dapat menyimpan skor.");
-                return;
+        String sql = "INSERT INTO leaderboard "
+                + "(player_name, avatar_path, score, books_collected, level, survival_time, status) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = DatabaseManager.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, playerName);
+            ps.setString(2, avatarPath != null ? avatarPath : "cowo");
+            ps.setInt(3, score);
+            ps.setInt(4, booksCollected);
+            ps.setInt(5, level);
+            ps.setInt(6, survivalTime);
+            ps.setString(7, status != null ? status : "GAME OVER");
+
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                System.out.println("✅ Score saved: " + playerName
+                        + " | " + score + " pts | LVL " + level
+                        + " | " + booksCollected + " books | " + status);
             }
 
-            try (PreparedStatement insertStmt = conn.prepareStatement(insertQuery)) {
-                insertStmt.setString(1, nama);
-                insertStmt.setInt(2, score);
-                insertStmt.setInt(3, waktu);
-
-                int rowsAffected = insertStmt.executeUpdate();
-                if (rowsAffected > 0) {
-                    System.out.println("DATA BERHASIL MASUK (Jumlah: " + rowsAffected + ")");
-                } else {
-                    System.out.println("ERROR: Data gagal masuk.");
-                }
-            }
         } catch (SQLException e) {
-            System.out.println("ERROR SQL saat simpan: " + e.getMessage());
+            System.out.println("❌ ERROR SQL simpan score: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
+    // ========== LEGACY (backward compat) ==========
+    public void saveScore(String nama, int score, int waktu) {
+        saveScore(nama, "cowo", score, 0, 1, waktu, "GAME OVER");
+    }
+
+    // ========== LOAD ALL SCORES ==========
     public List<Map<String, Object>> getAllScores() {
         List<Map<String, Object>> scores = new ArrayList<>();
-        String query = "SELECT * FROM leaderboard ORDER BY score DESC, waktu DESC";
-        try (Connection conn = DatabaseManager.getConnection()) {
-            if (conn == null)
-                return scores;
-            try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    while (rs.next()) {
-                        Map<String, Object> record = new HashMap<>();
-                        String name = rs.getString("nama");
-                        int score = rs.getInt("score");
-                        int time = rs.getInt("waktu");
+        String sql = "SELECT * FROM leaderboard ORDER BY score DESC, survival_time DESC";
 
-                        record.put("player_name", name);
-                        record.put("score", score);
-                        record.put("survival_time", time);
-                        scores.add(record);
+        try (Connection conn = DatabaseManager.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
-                        System.out.println("Fetched from DB: " + name + " | " + score + " | " + time);
-                    }
-                }
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("id", rs.getInt("id"));
+                row.put("player_name", rs.getString("player_name"));
+                row.put("avatar_path", rs.getString("avatar_path"));
+                row.put("score", rs.getInt("score"));
+                row.put("books_collected", rs.getInt("books_collected"));
+                row.put("level", rs.getInt("level"));
+                row.put("survival_time", rs.getInt("survival_time"));
+                row.put("status", rs.getString("status"));
+                scores.add(row);
             }
+
         } catch (SQLException e) {
-            System.out.println("ERROR SQL saat ambil data: " + e.getMessage());
+            System.out.println("❌ ERROR SQL ambil scores: " + e.getMessage());
             e.printStackTrace();
         }
         return scores;
     }
 
+    // ========== CHECK USERNAME ==========
     public boolean isUsernameInLeaderboard(String username) {
-        String query = "SELECT COUNT(*) FROM leaderboard WHERE LOWER(nama) = LOWER(?)";
-        try (Connection conn = DatabaseManager.getConnection()) {
-            if (conn == null)
-                return false;
-            try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-                pstmt.setString(1, username);
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    if (rs.next()) {
-                        return rs.getInt(1) > 0;
-                    }
-                }
+        String sql = "SELECT COUNT(*) FROM leaderboard WHERE LOWER(player_name) = LOWER(?)";
+        try (Connection conn = DatabaseManager.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1) > 0;
             }
         } catch (SQLException e) {
             e.printStackTrace();

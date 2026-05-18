@@ -6,24 +6,22 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DatabaseManager {
-    private static final String URL = "jdbc:mysql://localhost:3306/nama_database";
+    private static final String DB_NAME = "db_deadline";
+    private static final String BASE_URL = "jdbc:mysql://localhost:3306/";
+    private static final String DB_URL = BASE_URL + DB_NAME
+            + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8";
     private static final String USER = "root";
     private static final String PASS = "";
 
     public static Connection getConnection() throws SQLException {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            Connection conn = DriverManager.getConnection(URL, USER, PASS);
-            if (conn != null) {
-                System.out.println("Koneksi Berhasil ke database: nama_database");
-            }
-            return conn;
+            return DriverManager.getConnection(DB_URL, USER, PASS);
         } catch (ClassNotFoundException e) {
-            System.out.println("Driver MySQL tidak ditemukan!");
-            e.printStackTrace();
+            System.out.println("❌ Driver MySQL tidak ditemukan!");
             throw new SQLException(e);
         } catch (SQLException e) {
-            System.out.println("Koneksi Gagal: " + e.getMessage());
+            System.out.println("❌ Koneksi Gagal: " + e.getMessage());
             throw e;
         }
     }
@@ -32,52 +30,51 @@ public class DatabaseManager {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
-            System.out.println("Driver MySQL tidak ditemukan!");
-            e.printStackTrace();
+            System.out.println("❌ Driver MySQL tidak ditemukan!");
             return;
         }
 
-        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/", USER, PASS);
+        String rootUrl = BASE_URL + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+        try (Connection conn = DriverManager.getConnection(rootUrl, USER, PASS);
                 Statement stmt = conn.createStatement()) {
 
-            stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS nama_database");
-            System.out.println("Database nama_database siap.");
+            stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS " + DB_NAME
+                    + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            System.out.println("✅ Database '" + DB_NAME + "' siap.");
 
             try (Connection dbConn = getConnection();
                     Statement dbStmt = dbConn.createStatement()) {
 
-                // Pastikan tabel leaderboard sesuai request: nama, score, waktu
-                String createLeaderboard = "CREATE TABLE IF NOT EXISTS leaderboard (" +
-                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
-                        "nama VARCHAR(50), " +
-                        "score INT, " +
-                        "waktu INT, " +
-                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
-                        ")";
+                // ✅ Leaderboard table — new full schema
+                String createLeaderboard = "CREATE TABLE IF NOT EXISTS leaderboard ("
+                        + "id INT AUTO_INCREMENT PRIMARY KEY, "
+                        + "player_name VARCHAR(50), "
+                        + "avatar_path VARCHAR(255), "
+                        + "score INT, "
+                        + "books_collected INT, "
+                        + "level INT, "
+                        + "survival_time INT, "
+                        + "status VARCHAR(20), "
+                        + "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                        + ")";
                 dbStmt.executeUpdate(createLeaderboard);
+                System.out.println("✅ Tabel 'leaderboard' siap.");
 
-                String createPlayers = "CREATE TABLE IF NOT EXISTS players (" +
-                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
-                        "username VARCHAR(50), " +
-                        "avatar VARCHAR(100), " +
-                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
-                        ")";
-                dbStmt.executeUpdate(createPlayers);
+                // Migration: add missing columns to old tables if they exist
+                String[] alterCols = {
+                    "ALTER TABLE leaderboard ADD COLUMN IF NOT EXISTS avatar_path VARCHAR(255)",
+                    "ALTER TABLE leaderboard ADD COLUMN IF NOT EXISTS books_collected INT DEFAULT 0",
+                    "ALTER TABLE leaderboard ADD COLUMN IF NOT EXISTS level INT DEFAULT 1",
+                    "ALTER TABLE leaderboard ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'GAME OVER'"
+                };
+                for (String sql : alterCols) {
+                    try { dbStmt.executeUpdate(sql); } catch (Exception ignored) {}
+                }
 
-                String createSubmissions = "CREATE TABLE IF NOT EXISTS submissions (" +
-                        "id INT AUTO_INCREMENT PRIMARY KEY, " +
-                        "player_id INT, " +
-                        "title VARCHAR(100), " +
-                        "status VARCHAR(20), " +
-                        "submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
-                        ")";
-                dbStmt.executeUpdate(createSubmissions);
-
-                System.out.println("Database initialized successfully.");
+                System.out.println("✅ Database initialized successfully.");
             }
         } catch (SQLException e) {
-            System.out.println("Gagal Inisialisasi Database: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("❌ Gagal Inisialisasi Database: " + e.getMessage());
         }
     }
 }

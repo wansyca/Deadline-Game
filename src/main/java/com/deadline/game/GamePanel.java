@@ -203,6 +203,10 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         player.setAvatar(avatarPath);
 
         initGame();
+        
+        if (timer != null && !timer.isRunning()) {
+            timer.start();
+        }
     }
 
     private void spawnLecturer() {
@@ -317,7 +321,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             com.deadline.backend.ScoreService ss = new com.deadline.backend.ScoreService();
             List<Map<String, Object>> scores = ss.getAllScores();
             SwingUtilities.invokeLater(() -> {
-                cachedTopScores = scores.size() > 5 ? scores.subList(0, 5) : scores;
+                cachedTopScores = scores.size() > 5 ? new java.util.ArrayList<>(scores.subList(0, 5)) : scores;
                 repaint();
             });
         }).start();
@@ -326,7 +330,17 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private void saveFinalScore() {
         if (player != null && player.getName() != null && !player.getName().isEmpty()) {
             int scoreToSave = (survivalTime / 10) + (totalBooksCollected * 50) + (currentLevel * 100);
-            LeaderboardManager.saveScore(player.getName(), scoreToSave, survivalTime, player.getAvatar());
+            String avatarPath = player.getAvatar() != null ? player.getAvatar() : "cowo";
+            String status = "GAME OVER"; // caught by lecturer
+            LeaderboardManager.saveScore(
+                    player.getName(),
+                    avatarPath,
+                    scoreToSave,
+                    totalBooksCollected,
+                    currentLevel,
+                    survivalTime,
+                    status
+            );
         }
     }
 
