@@ -35,9 +35,9 @@ public class SoundManager {
     private static final String PATH_GAMEOVER = "/sound/Gameover.wav";
 
     // ─── Volume defaults (dB) ────────────────────────────────────────────────
-    // Menu BGM dinaikkan agar terdengar jelas di halaman awal & input player.
+    // Menu BGM dinaikkan maksimal (+6 dB) agar terdengar jelas.
     // SFX tetap keras agar feedback player selalu jelas.
-    private static final float VOL_MENU     = 0.0f;  // ~25% — soft horror ambience
+    private static final float VOL_MENU     = 10.0f;  // Dikeraskan maksimal (+6 dB)
     private static final float VOL_CLICK    =  -5.0f;  // ~60% — crisp UI feedback
     private static final float VOL_BOOK     =   -5.0f;  // ~70% — satisfying collect
     private static final float VOL_GAMEOVER =   0.0f;  // 100% — dramatic sting

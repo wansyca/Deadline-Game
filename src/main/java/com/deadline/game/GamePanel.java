@@ -396,7 +396,9 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         int btnW = 170, btnH = 55, gap = 20;
         int totalW = (btnW * 2) + gap;
         int startX = (panelW - totalW) / 2;
-        int btnY = panelH - 160;
+        
+        // Posisikan tepat di bawah list leaderboard agar tidak terpotong di bawah
+        int btnY = (panelH / 2) + 150; 
 
         btnRetry = new Rectangle(startX, btnY, btnW, btnH);
         btnMenu = new Rectangle(startX + btnW + gap, btnY, btnW, btnH);

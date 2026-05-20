@@ -265,3 +265,4 @@ public class SplashScreen extends JPanel {
         g2.fillRect(0, 0, w, h);
     }
 }
+

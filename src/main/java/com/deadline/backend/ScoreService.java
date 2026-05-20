@@ -15,26 +15,43 @@ public class ScoreService {
     public void saveScore(String playerName, String avatarPath, int score,
             int booksCollected, int level, int survivalTime, String status) {
 
-        String sql = "INSERT INTO leaderboard "
-                + "(player_name, avatar_path, score, books_collected, level, survival_time, status) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        if (playerName == null || playerName.trim().isEmpty()) {
+            System.out.println("❌ Score not saved: Player name is empty.");
+            return;
+        }
 
-        try (Connection conn = DatabaseManager.getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+        playerName = playerName.trim();
 
-            ps.setString(1, playerName);
-            ps.setString(2, avatarPath != null ? avatarPath : "cowo");
-            ps.setInt(3, score);
-            ps.setInt(4, booksCollected);
-            ps.setInt(5, level);
-            ps.setInt(6, survivalTime);
-            ps.setString(7, status != null ? status : "GAME OVER");
+        try (Connection conn = DatabaseManager.getConnection()) {
+            
+            // 1. Hapus data lama dengan nama yang sama (case-insensitive) 
+            // Ini menjamin tidak ada duplikat dan data lama otomatis 'terganti'
+            String deleteSql = "DELETE FROM leaderboard WHERE LOWER(player_name) = LOWER(?)";
+            try (PreparedStatement psDel = conn.prepareStatement(deleteSql)) {
+                psDel.setString(1, playerName);
+                psDel.executeUpdate();
+            }
 
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
-                System.out.println("✅ Score saved: " + playerName
-                        + " | " + score + " pts | LVL " + level
-                        + " | " + booksCollected + " books | " + status);
+            // 2. Insert data yang terbaru
+            String insertSql = "INSERT INTO leaderboard "
+                    + "(player_name, avatar_path, score, books_collected, level, survival_time, status) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+            
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setString(1, playerName);
+                ps.setString(2, avatarPath != null ? avatarPath : "cowo");
+                ps.setInt(3, score);
+                ps.setInt(4, booksCollected);
+                ps.setInt(5, level);
+                ps.setInt(6, survivalTime);
+                ps.setString(7, status != null ? status : "GAME OVER");
+
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    System.out.println("✅ Score saved/updated: " + playerName
+                            + " | " + score + " pts | LVL " + level
+                            + " | " + booksCollected + " books | " + status);
+                }
             }
 
         } catch (SQLException e) {
