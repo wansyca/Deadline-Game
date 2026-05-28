@@ -503,8 +503,11 @@ public class SurvivorRankingUI extends JPanel {
         // Header
         g.setFont(px(11));
         g.setColor(MUTED);
-        String hdr = "RANK   PLAYER                      SCORE     LVL   BOOKS   TIME    STATUS";
-        g.drawString(hdr, LIST_X + 10, LIST_Y - 12);
+        g.drawString("RANK", LIST_X + 12, LIST_Y - 12);
+        g.drawString("PLAYER", LIST_X + 94, LIST_Y - 12);
+        g.drawString("SCORE", LIST_X + 350, LIST_Y - 12);
+        g.drawString("LVL", LIST_X + 500, LIST_Y - 12);
+        g.drawString("BOOKS", LIST_X + 650, LIST_Y - 12);
         
         g.setColor(new Color(150, 40, 40, 80));
         g.setStroke(new BasicStroke(1.5f));
@@ -577,32 +580,18 @@ public class SurvivorRankingUI extends JPanel {
             // Score
             g.setFont(px(13));
             g.setColor(GOLD);
-            g.drawString(String.valueOf(ps.score), LIST_X + 280, ty);
+            g.drawString(String.valueOf(ps.score), LIST_X + 350, ty);
 
             // Level
             g.setFont(px(12));
             g.setColor(new Color(250, 150, 150));
-            g.drawString("LV" + ps.level, LIST_X + 380, ty);
+            g.drawString("LV" + ps.level, LIST_X + 500, ty);
 
             // Books
             g.setColor(new Color(200, 200, 200));
-            g.drawString("" + ps.booksCollected, LIST_X + 450, ty);
+            g.drawString("" + ps.booksCollected, LIST_X + 650, ty);
 
-            // Time
-            g.setColor(new Color(180, 180, 190));
-            g.drawString(ps.getFormattedTime(), LIST_X + 520, ty);
-
-            // Status badge
-            boolean win = "WIN".equalsIgnoreCase(ps.status);
-            Color sc = win ? new Color(150, 200, 100) : new Color(200, 50, 50);
-            g.setColor(new Color(sc.getRed(), sc.getGreen(), sc.getBlue(), 40));
-            g.fillRoundRect(LIST_X + 600, ry + 9, 70, 20, 6, 6);
-            g.setColor(sc);
-            g.setStroke(new BasicStroke(1f));
-            g.drawRoundRect(LIST_X + 600, ry + 9, 70, 20, 6, 6);
-            g.setFont(px(9));
-            String st = win ? "WIN" : "GAME OVER";
-            g.drawString(st, LIST_X + 605 + (60 - g.getFontMetrics().stringWidth(st))/2, ty - 1);
+            // Time and Status removed per request
         }
         
         g.setClip(oldClip);

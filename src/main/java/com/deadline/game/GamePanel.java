@@ -245,7 +245,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         currentLevel++;
         targetBooks = 10 + (currentLevel - 1) * 5; // 10, 15, 20...
         collectedBooks = 0;
-        timeLeft = 60; // Reset timer for new level
+        timeLeft = Math.max(15, 60 - (currentLevel - 1) * 15); // Level 1 = 60s, Level 2 = 45s, Level 3 = 30s...
 
         generateMap();
         SoundManager.playBookSound();
@@ -428,8 +428,19 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         ticks++;
         if (ticks % FPS == 0) {
             survivalTime++;
-            if (timeLeft > 0)
+            if (timeLeft > 0) {
                 timeLeft--;
+                if (timeLeft == 0) {
+                    isGameOver = true;
+                    if (!scoreSaved) {
+                        scoreSaved = true;
+                        new Thread(() -> {
+                            saveFinalScore();
+                            loadLeaderboardFromDB();
+                        }).start();
+                    }
+                }
+            }
         }
 
         int dx = 0, dy = 0;
