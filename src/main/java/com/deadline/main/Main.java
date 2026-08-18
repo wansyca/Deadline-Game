@@ -33,10 +33,10 @@ public class Main {
             // FIXED RESOLUTION (4:3 Ratio to match background)
             int width = 1024;
             int height = 768;
-            
+
             mainPanel = new JPanel(cardLayout = new CardLayout());
             mainPanel.setPreferredSize(new Dimension(width, height));
-            
+
             frame.setResizable(true);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH); // Start maximized for professional feel
 
